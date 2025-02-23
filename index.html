@@ -137,8 +137,9 @@
             <button onclick="closePopup()">Close</button>
         </div>
 
-        <!-- Include html2pdf.js -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+        <!-- Include html2canvas and jsPDF -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
         <script>
             document.fonts.ready.then(() => {
                 document.body.classList.add("fonts-loaded");
@@ -318,38 +319,38 @@ Format the response with:
             function exportToPDF() {
                 const content = document.getElementById("content");
 
-                // Clone the content to avoid modifying the original
-                const clone = content.cloneNode(true);
+                // Temporarily disable absolute positioning
+                const absoluteElements = content.querySelectorAll("[style*='position: absolute']");
+                absoluteElements.forEach((el) => {
+                    el.dataset.originalPosition = el.style.position;
+                    el.style.position = "static";
+                });
 
-                // Adjust the clone for PDF export
-                clone.style.width = "800px"; // Fixed width for A4
-                clone.style.position = "static"; // Disable absolute positioning
-                clone.style.overflow = "visible"; // Ensure all content is visible
+                // Use html2canvas to render the content into a canvas
+                html2canvas(content, {
+                    scale: 2, // Higher scale for better quality
+                    useCORS: true, // Handle external images
+                    scrollY: 0, // Capture the entire content
+                }).then((canvas) => {
+                    // Convert the canvas to an image
+                    const imgData = canvas.toDataURL("image/png");
 
-                // Append the clone to the body temporarily
-                document.body.appendChild(clone);
+                    // Create a new PDF
+                    const pdf = new jspdf.jsPDF("p", "mm", "a4");
+                    const imgWidth = 210; // A4 width in mm
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-                const opt = {
-                    margin: 10,
-                    filename: "custom_notepad.pdf",
-                    image: { type: "jpeg", quality: 0.98 },
-                    html2canvas: { 
-                        scale: 92, // Higher scale for better quality
-                        useCORS: true,
-                        scrollY: 0, // Handle scrolling content
-                    },
-                    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-                };
+                    // Add the image to the PDF
+                    pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
 
-                // Export the clone
-                html2pdf()
-                    .set(opt)
-                    .from(clone)
-                    .save()
-                    .then(() => {
-                        // Remove the clone after export
-                        document.body.removeChild(clone);
+                    // Save the PDF
+                    pdf.save("custom_notepad.pdf");
+
+                    // Restore original positioning
+                    absoluteElements.forEach((el) => {
+                        el.style.position = el.dataset.originalPosition;
                     });
+                });
             }
         </script>
     </body>
