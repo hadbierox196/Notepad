@@ -322,11 +322,11 @@ Format the response with:
                 const absoluteElements = element.querySelectorAll("[style*='position: absolute']");
                 absoluteElements.forEach((el) => {
                     el.dataset.originalPosition = el.style.position;
-                    el.style.position = "relative";
+                    el.style.position = "static";
                 });
 
                 const opt = {
-                    margin: 115,
+                    margin: 1115,
                     filename: "notes.pdf",
                     image: { type: "jpeg", quality: 0.98 },
                     html2canvas: { 
