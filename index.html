@@ -125,6 +125,7 @@
             <input type="file" id="imageInput" accept="image/*" onchange="addImage(event)" />
             <button onclick="document.getElementById('imageInput').click()">Add Image</button>
             <button onclick="openPopup()">Generate AI Content</button>
+            <button onclick="exportToPDF()">Save as PDF</button> <!-- New PDF Export Button -->
         </div>
         <div id="content" contenteditable="true"></div>
         <div class="overlay" id="overlay"></div>
@@ -135,10 +136,13 @@
             <button onclick="closePopup()">Close</button>
         </div>
 
+        <!-- Include html2pdf.js -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
         <script>
             document.fonts.ready.then(() => {
                 document.body.classList.add("fonts-loaded");
             });
+
             function addElement(type) {
                 const content = document.getElementById("content");
                 let element;
@@ -181,6 +185,7 @@
                     sel.addRange(range);
                 }
             }
+
             function addImage(event) {
                 const file = event.target.files[0];
                 if (file) {
@@ -197,6 +202,7 @@
                     reader.readAsDataURL(file);
                 }
             }
+
             function attachMoveAndResizeListeners(element) {
                 let isDragging = false;
                 let offsetX, offsetY;
@@ -236,41 +242,8 @@
                 document.addEventListener("touchend", function () {
                     isDragging = false;
                 });
-                element.addEventListener("mousedown", function (e) {
-                    const rect = element.getBoundingClientRect();
-                    const cornerSize = 10;
-                    if (e.pageX > rect.right - cornerSize && e.pageY > rect.bottom - cornerSize) {
-                        element.style.cursor = "se-resize";
-                        document.addEventListener("mousemove", resize);
-                        document.addEventListener("mouseup", () => {
-                            document.removeEventListener("mousemove", resize);
-                            element.style.cursor = "move";
-                        });
-                    }
-                });
-                element.addEventListener("touchstart", function (e) {
-                    const rect = element.getBoundingClientRect();
-                    const touch = e.touches[0];
-                    const cornerSize = 10;
-                    if (touch.clientX > rect.right - cornerSize && touch.clientY > rect.bottom - cornerSize) {
-                        element.style.cursor = "se-resize";
-                        document.addEventListener("touchmove", resizeTouch);
-                        document.addEventListener("touchend", () => {
-                            document.removeEventListener("touchmove", resizeTouch);
-                            element.style.cursor = "move";
-                        });
-                    }
-                });
-                function resize(e) {
-                    element.style.width = e.pageX - element.offsetLeft + "px";
-                    element.style.height = e.pageY - element.offsetTop + "px";
-                }
-                function resizeTouch(e) {
-                    const touch = e.touches[0];
-                    element.style.width = touch.clientX - element.offsetLeft + "px";
-                    element.style.height = touch.clientY - element.offsetTop + "px";
-                }
             }
+
             function attachVerticalMoveListeners(element) {
                 let isDragging = false;
                 let offsetY;
@@ -303,14 +276,17 @@
                     isDragging = false;
                 });
             }
+
             function openPopup() {
                 document.getElementById("popup").style.display = "block";
                 document.getElementById("overlay").style.display = "block";
             }
+
             function closePopup() {
                 document.getElementById("popup").style.display = "none";
                 document.getElementById("overlay").style.display = "none";
             }
+
             async function generateContent() {
                 const topic = document.getElementById("topicInput").value;
                 if (!topic) return alert("Please enter a topic");
@@ -335,6 +311,19 @@ Format the response with:
                     console.error("Error generating content:", error);
                     alert("Failed to generate content");
                 }
+            }
+
+            // PDF Export Functionality
+            function exportToPDF() {
+                const element = document.getElementById("content");
+                const opt = {
+                    margin: 10,
+                    filename: "custom_notepad.pdf",
+                    image: { type: "jpeg", quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true },
+                    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+                };
+                html2pdf().set(opt).from(element).save();
             }
         </script>
     </body>
