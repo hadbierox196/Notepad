@@ -116,6 +116,14 @@
                 background: rgba(0, 0, 0, 0.5);
                 z-index: 999;
             }
+            #textInput {
+                width: 100%;
+                height: 150px;
+                margin-bottom: 10px;
+                padding: 10px;
+                font-family: Arial, sans-serif;
+                font-size: 1em;
+            }
         </style>
     </head>
     <body>
@@ -127,6 +135,7 @@
             <button onclick="document.getElementById('imageInput').click()">Add Image</button>
             <button onclick="openPopup()">Generate AI Content</button>
             <button onclick="exportToPDF()">Save as PDF</button>
+            <button onclick="openTextPopup()">Format Text</button> <!-- New Button -->
         </div>
         <div id="content" contenteditable="true"></div>
         <div class="overlay" id="overlay"></div>
@@ -135,6 +144,12 @@
             <input type="text" id="topicInput" placeholder="Enter topic name" />
             <button onclick="generateContent()">Generate</button>
             <button onclick="closePopup()">Close</button>
+        </div>
+        <div class="popup" id="textPopup">
+            <h2>Enter Text</h2>
+            <textarea id="textInput" placeholder="Paste your text here..."></textarea>
+            <button onclick="formatText()">Format</button>
+            <button onclick="closeTextPopup()">Close</button>
         </div>
 
         <!-- Include html2canvas and jsPDF -->
@@ -289,6 +304,16 @@
                 document.getElementById("overlay").style.display = "none";
             }
 
+            function openTextPopup() {
+                document.getElementById("textPopup").style.display = "block";
+                document.getElementById("overlay").style.display = "block";
+            }
+
+            function closeTextPopup() {
+                document.getElementById("textPopup").style.display = "none";
+                document.getElementById("overlay").style.display = "none";
+            }
+
             async function generateContent() {
                 const topic = document.getElementById("topicInput").value;
                 if (!topic) return alert("Please enter a topic");
@@ -313,6 +338,40 @@ Format the response with:
                     console.error("Error generating content:", error);
                     alert("Failed to generate content");
                 }
+            }
+
+            function formatText() {
+                const text = document.getElementById("textInput").value;
+                const lines = text.split("\n");
+                const content = document.getElementById("content");
+
+                lines.forEach((line) => {
+                    if (line.startsWith("##")) {
+                        // Central Heading
+                        const heading = document.createElement("div");
+                        heading.className = "heading";
+                        heading.textContent = line.replace("##", "").trim();
+                        content.appendChild(heading);
+                    } else if (line.startsWith("@@")) {
+                        // Side Heading
+                        const sideHeading = document.createElement("div");
+                        sideHeading.className = "side-heading";
+                        sideHeading.textContent = line.replace("@@", "").trim();
+                        content.appendChild(sideHeading);
+                    } else if (line.trim() !== "") {
+                        // Body Text
+                        const box = document.createElement("div");
+                        box.className = "box";
+                        const bodyText = document.createElement("div");
+                        bodyText.className = "body-text";
+                        bodyText.textContent = line.trim();
+                        box.appendChild(bodyText);
+                        content.appendChild(box);
+                        attachMoveAndResizeListeners(box);
+                    }
+                });
+
+                closeTextPopup();
             }
 
             // PDF Export Functionality
