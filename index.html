@@ -90,10 +90,14 @@
             .toolbar {
                 margin-bottom: 20px;
             }
-            .toolbar button {
+            .toolbar select {
                 padding: 10px;
                 margin-right: 10px;
                 cursor: pointer;
+                font-size: 1em;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                background-color: #f9f9f9;
             }
             .popup {
                 display: none;
@@ -128,14 +132,16 @@
     </head>
     <body>
         <div class="toolbar">
-            <button onclick="addElement('heading')">Heading</button>
-            <button onclick="addElement('box')">Box</button>
-            <button onclick="addElement('line')">Line</button>
-            <input type="file" id="imageInput" accept="image/*" onchange="addImage(event)" />
-            <button onclick="document.getElementById('imageInput').click()">Add Image</button>
-            <button onclick="openPopup()">Generate AI Content</button>
-            <button onclick="exportToPDF()">Save as PDF</button>
-            <button onclick="openTextPopup()">Format Text</button> <!-- New Button -->
+            <select onchange="handleDropdownChange(this)">
+                <option value="">Select an option</option>
+                <option value="heading">Add Heading</option>
+                <option value="box">Add Box</option>
+                <option value="line">Add Line</option>
+                <option value="image">Add Image</option>
+                <option value="ai">Generate AI Content</option>
+                <option value="pdf">Save as PDF</option>
+                <option value="format">Format Text</option>
+            </select>
         </div>
         <div id="content" contenteditable="true"></div>
         <div class="overlay" id="overlay"></div>
@@ -159,6 +165,34 @@
             document.fonts.ready.then(() => {
                 document.body.classList.add("fonts-loaded");
             });
+
+            function handleDropdownChange(select) {
+                const value = select.value;
+                switch (value) {
+                    case "heading":
+                        addElement("heading");
+                        break;
+                    case "box":
+                        addElement("box");
+                        break;
+                    case "line":
+                        addElement("line");
+                        break;
+                    case "image":
+                        document.getElementById("imageInput").click();
+                        break;
+                    case "ai":
+                        openPopup();
+                        break;
+                    case "pdf":
+                        exportToPDF();
+                        break;
+                    case "format":
+                        openTextPopup();
+                        break;
+                }
+                select.value = ""; // Reset dropdown
+            }
 
             function addElement(type) {
                 const content = document.getElementById("content");
@@ -390,6 +424,7 @@ Format the response with:
                     scale: 2, // Higher scale for better quality
                     useCORS: true, // Handle external images
                     scrollY: 0, // Capture the entire content
+                    backgroundColor: null, // Ensure background is included
                 }).then((canvas) => {
                     // Convert the canvas to an image
                     const imgData = canvas.toDataURL("image/png");
