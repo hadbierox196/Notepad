@@ -70,10 +70,11 @@
 
         #canvas {
             position: relative;
-            width: 2000px;
-            height: 2000px;
+            width: auto;
+            height: auto;
             min-width: 100%;
             min-height: 100%;
+            transition: all 0.3s ease;
         }
 
         .dot {
@@ -209,7 +210,6 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize variables
             const canvas = document.getElementById('canvas');
             const canvasContainer = document.getElementById('canvas-container');
             const toolbar = document.getElementById('toolbar');
@@ -218,106 +218,68 @@
             
             let currentTool = 'pen';
             let isDrawing = false;
-            let currentPath = [];
-            let paths = [];
-            let currentColor = 'white';
             let currentStroke = [];
+            let currentPath = null;
+            let currentColor = 'white';
             let selectedElement = null;
             let offset = { x: 0, y: 0 };
             let isResizing = false;
             let originalDimensions = { width: 0, height: 0 };
-            let startPoint = { x: 0, y: 0 };
-            let longPressTimer = null;
             let textElements = [];
             let imageElements = [];
             let strokeElements = [];
-            
-            // Generate white dots background
+
             function generateDots() {
-                const canvasWidth = canvas.offsetWidth;
-                const canvasHeight = canvas.offsetHeight;
-                const spacing = 50; // Space between dots
+                const spacing = 50;
+                const viewportWidth = canvasContainer.offsetWidth;
+                const viewportHeight = canvasContainer.offsetHeight;
                 
-                for (let x = 0; x < canvasWidth; x += spacing) {
-                    for (let y = 0; y < canvasHeight; y += spacing) {
-                        // Add some randomness to dot positions
-                        const offsetX = Math.random() * 10 - 5;
-                        const offsetY = Math.random() * 10 - 5;
-                        
+                for (let x = 0; x < viewportWidth; x += spacing) {
+                    for (let y = 0; y < viewportHeight; y += spacing) {
                         const dot = document.createElement('div');
                         dot.className = 'dot';
-                        dot.style.left = (x + offsetX) + 'px';
-                        dot.style.top = (y + offsetY) + 'px';
+                        dot.style.left = (x + Math.random() * 10 - 5) + 'px';
+                        dot.style.top = (y + Math.random() * 10 - 5) + 'px';
                         canvas.appendChild(dot);
                     }
                 }
             }
-            
-            // Set active tool
+
             function setActiveTool(toolId) {
                 document.querySelectorAll('.tool').forEach(tool => {
                     tool.classList.remove('active');
                 });
                 document.getElementById(toolId).classList.add('active');
                 
-                switch(toolId) {
-                    case 'pen-tool':
-                        currentTool = 'pen';
-                        break;
-                    case 'text-tool':
-                        currentTool = 'text';
-                        break;
-                    case 'select-tool':
-                        currentTool = 'select';
-                        break;
-                    case 'erase-tool':
-                        currentTool = 'erase';
-                        break;
-                    case 'image-tool':
-                        currentTool = 'image';
-                        document.getElementById('image-upload').click();
-                        break;
-                }
+                currentTool = toolId.replace('-tool', '');
                 
-                // Deselect any selected element when changing tools
                 if (selectedElement) {
                     selectedElement.classList.remove('selected');
                     selectedElement = null;
                 }
             }
-            
-            // Handle text formatting
+
             function formatText(text) {
                 const centralHeadingRegex = /\*\*\[(.*?)\]\*\*/g;
                 const sideHeadingRegex = /\*\[(.*?)\]\*/g;
+                let formattedText = text
+                    .replace(centralHeadingRegex, '<span class="central-heading">$1</span>')
+                    .replace(sideHeadingRegex, '<span class="side-heading">$1</span>');
                 
-                let formattedText = text;
-                
-                // Replace central headings
-                formattedText = formattedText.replace(centralHeadingRegex, '<span class="central-heading">$1</span>');
-                
-                // Replace side headings
-                formattedText = formattedText.replace(sideHeadingRegex, '<span class="side-heading">$1</span>');
-                
-                // Randomize colors for regular text
-                let colors = ['blue', 'green', 'red', 'purple', 'yellow'];
-                let parts = formattedText.split(/(<span class="central-heading">.*?<\/span>|<span class="side-heading">.*?<\/span>)/);
-                
-                for (let i = 0; i < parts.length; i++) {
-                    if (!parts[i].includes('<span class="') && parts[i].trim() !== '') {
-                        let randomColor = colors[Math.floor(Math.random() * colors.length)];
-                        parts[i] = `<span style="color: ${randomColor};">${parts[i]}</span>`;
-                    }
-                }
-                
-                return parts.join('');
+                const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD'];
+                return formattedText.split(/(<span class=".*?">.*?<\/span>)/g)
+                    .map(part => {
+                        if (!part.match(/^<span/)) {
+                            return `<span style="color: ${colors[Math.floor(Math.random() * colors.length)]}">${part}</span>`;
+                        }
+                        return part;
+                    })
+                    .join('');
             }
-            
-            // Create a new text box
+
             function createTextBox(x, y) {
                 const textBox = document.createElement('div');
                 textBox.className = 'text-box';
-                textBox.contentEditable = 'true';
                 textBox.style.left = x + 'px';
                 textBox.style.top = y + 'px';
                 
@@ -325,313 +287,141 @@
                 resizeHandle.className = 'resize-handle';
                 textBox.appendChild(resizeHandle);
                 
-                canvas.appendChild(textBox);
-                textElements.push(textBox);
-                
-                // Set focus to the text box
-                textBox.focus();
-                
-                // Handle text input and formatting
+                textBox.contentEditable = 'true';
                 textBox.addEventListener('blur', function() {
-                    const formattedText = formatText(textBox.innerText);
-                    textBox.innerHTML = formattedText;
-                    
-                    // Add resize handle again (it gets removed when setting innerHTML)
-                    if (!textBox.querySelector('.resize-handle')) {
-                        const resizeHandle = document.createElement('div');
-                        resizeHandle.className = 'resize-handle';
-                        textBox.appendChild(resizeHandle);
-                    }
-                    
-                    // Make contentEditable false when not selected
-                    if (selectedElement !== textBox) {
-                        textBox.contentEditable = 'false';
+                    this.innerHTML = formatText(this.innerText);
+                    if (!this.querySelector('.resize-handle')) {
+                        this.appendChild(resizeHandle.cloneNode(true));
                     }
                 });
                 
+                canvas.appendChild(textBox);
+                textElements.push(textBox);
+                textBox.focus();
                 return textBox;
             }
-            
-            // Handle drawing
+
             function startDrawing(e) {
                 if (currentTool === 'pen') {
                     isDrawing = true;
-                    const canvasRect = canvas.getBoundingClientRect();
-                    const x = e.clientX - canvasRect.left + canvasContainer.scrollLeft;
-                    const y = e.clientY - canvasRect.top + canvasContainer.scrollTop;
+                    const rect = canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left + canvasContainer.scrollLeft;
+                    const y = e.clientY - rect.top + canvasContainer.scrollTop;
                     
                     currentStroke = [];
-                    currentPath = [];
+                    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    svg.style.position = 'absolute';
+                    svg.style.left = '0';
+                    svg.style.top = '0';
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    path.setAttribute('stroke', currentColor);
+                    path.setAttribute('stroke-width', '2');
+                    path.setAttribute('fill', 'none');
+                    svg.appendChild(path);
+                    canvas.appendChild(svg);
                     
-                    // Start a new SVG path
-                    const pathElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                    pathElement.setAttribute('stroke', currentColor);
-                    pathElement.setAttribute('stroke-width', '2');
-                    pathElement.setAttribute('fill', 'none');
-                    
-                    // Create SVG element if it doesn't exist
-                    let svg = canvas.querySelector('svg');
-                    if (!svg) {
-                        svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                        svg.setAttribute('width', '100%');
-                        svg.setAttribute('height', '100%');
-                        svg.style.position = 'absolute';
-                        svg.style.top = '0';
-                        svg.style.left = '0';
-                        svg.style.pointerEvents = 'none';
-                        canvas.appendChild(svg);
-                    }
-                    
-                    svg.appendChild(pathElement);
-                    currentPath = pathElement;
-                    
-                    // Add point to stroke
+                    currentPath = { svg, path };
                     currentStroke.push({ x, y });
                     updatePath();
-                    
-                    // Start long press timer for color palette
-                    longPressTimer = setTimeout(function() {
-                        showColorPalette(e.clientX, e.clientY);
-                    }, 500);
-                    
-                    // Check if we need to expand canvas
-                    expandCanvasIfNeeded(x, y);
                 }
             }
-            
+
             function draw(e) {
                 if (!isDrawing) return;
                 
-                // Clear long press timer if the user moves
-                clearTimeout(longPressTimer);
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left + canvasContainer.scrollLeft;
+                const y = e.clientY - rect.top + canvasContainer.scrollTop;
                 
-                const canvasRect = canvas.getBoundingClientRect();
-                const x = e.clientX - canvasRect.left + canvasContainer.scrollLeft;
-                const y = e.clientY - canvasRect.top + canvasContainer.scrollTop;
-                
-                // Add point to stroke
                 currentStroke.push({ x, y });
                 updatePath();
-                
-                // Check if we need to expand canvas
                 expandCanvasIfNeeded(x, y);
             }
-            
+
             function stopDrawing() {
                 if (isDrawing) {
                     isDrawing = false;
-                    paths.push(currentPath);
                     strokeElements.push(currentStroke);
-                    currentStroke = [];
+                    currentPath = null;
                 }
-                
-                // Clear long press timer
-                clearTimeout(longPressTimer);
-                
-                // Hide color palette
-                colorPalette.style.display = 'none';
             }
-            
+
             function updatePath() {
-                if (currentStroke.length === 0) return;
+                if (!currentPath || currentStroke.length < 1) return;
+                const d = currentStroke.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+                currentPath.path.setAttribute('d', d);
+            }
+
+            function expandCanvasIfNeeded(x, y) {
+                const padding = 50;
+                const expandAmount = 200;
+                let currentWidth = parseFloat(canvas.style.width) || canvas.offsetWidth;
+                let currentHeight = parseFloat(canvas.style.height) || canvas.offsetHeight;
                 
-                let d = `M ${currentStroke[0].x} ${currentStroke[0].y}`;
+                if (x > currentWidth - padding) currentWidth += expandAmount;
+                if (y > currentHeight - padding) currentHeight += expandAmount;
                 
-                for (let i = 1; i < currentStroke.length; i++) {
-                    d += ` L ${currentStroke[i].x} ${currentStroke[i].y}`;
+                if (currentWidth !== canvas.offsetWidth || currentHeight !== canvas.offsetHeight) {
+                    canvas.style.width = currentWidth + 'px';
+                    canvas.style.height = currentHeight + 'px';
+                    generateMoreDots(currentWidth, currentHeight);
                 }
+            }
+
+            function generateMoreDots(startX, startY) {
+                const spacing = 50;
+                const currentWidth = canvas.offsetWidth;
+                const currentHeight = canvas.offsetHeight;
                 
-                currentPath.setAttribute('d', d);
+                for (let x = startX; x < currentWidth; x += spacing) {
+                    for (let y = startY; y < currentHeight; y += spacing) {
+                        const dot = document.createElement('div');
+                        dot.className = 'dot';
+                        dot.style.left = (x + Math.random() * 10 - 5) + 'px';
+                        dot.style.top = (y + Math.random() * 10 - 5) + 'px';
+                        canvas.appendChild(dot);
+                    }
+                }
             }
-            
-            // Show color palette
-            function showColorPalette(x, y) {
-                colorPalette.style.display = 'flex';
-                colorPalette.style.left = (x - 70) + 'px';
-                colorPalette.style.top = (y + 20) + 'px';
-            }
-            
-            // Select an element for moving or resizing
+
             function selectElement(e) {
                 if (currentTool !== 'select') return;
+                const element = e.target.closest('.text-box, img');
                 
-                // Check if clicked on text box
-                let element = e.target;
-                
-                // Don't select if clicked on resize handle
-                if (element.className === 'resize-handle') return;
-                
-                // Check if the element is a text box or an image
-                if (element.classList.contains('text-box') || element.tagName === 'IMG') {
-                    // Deselect previous element
+                if (element) {
                     if (selectedElement) {
                         selectedElement.classList.remove('selected');
-                        
-                        // Make text boxes not editable when deselected
                         if (selectedElement.classList.contains('text-box')) {
                             selectedElement.contentEditable = 'false';
                         }
                     }
-                    
-                    // Select new element
                     selectedElement = element;
                     selectedElement.classList.add('selected');
                     
-                    // Make text boxes editable when selected
                     if (selectedElement.classList.contains('text-box')) {
                         selectedElement.contentEditable = 'true';
+                        selectedElement.focus();
                     }
                     
-                    // Calculate offset for smooth dragging
                     const rect = selectedElement.getBoundingClientRect();
-                    offset.x = e.clientX - rect.left;
-                    offset.y = e.clientY - rect.top;
-                    
-                    // Save original dimensions for resizing
-                    originalDimensions.width = rect.width;
-                    originalDimensions.height = rect.height;
-                    
-                    // Save start point for resizing
-                    startPoint.x = e.clientX;
-                    startPoint.y = e.clientY;
-                } else {
-                    // If clicked on empty space, deselect
-                    if (selectedElement) {
-                        selectedElement.classList.remove('selected');
-                        
-                        // Make text boxes not editable when deselected
-                        if (selectedElement.classList.contains('text-box')) {
-                            selectedElement.contentEditable = 'false';
-                        }
-                        
-                        selectedElement = null;
-                    }
+                    offset.x = e.clientX - rect.left + canvasContainer.scrollLeft;
+                    offset.y = e.clientY - rect.top + canvasContainer.scrollTop;
                 }
             }
-            
-            // Start resizing an element
-            function startResize(e) {
-                if (currentTool !== 'select' || !selectedElement) return;
-                
-                if (e.target.className === 'resize-handle') {
-                    isResizing = true;
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    // Save start point
-                    startPoint.x = e.clientX;
-                    startPoint.y = e.clientY;
-                    
-                    // Save original dimensions
-                    const rect = selectedElement.getBoundingClientRect();
-                    originalDimensions.width = rect.width;
-                    originalDimensions.height = rect.height;
-                }
-            }
-            
-            // Resize an element
-            function resize(e) {
-                if (!isResizing || !selectedElement) return;
-                
-                // Calculate new dimensions
-                const deltaX = e.clientX - startPoint.x;
-                const deltaY = e.clientY - startPoint.y;
-                
-                const newWidth = Math.max(100, originalDimensions.width + deltaX);
-                const newHeight = Math.max(30, originalDimensions.height + deltaY);
-                
-                // Apply new dimensions
-                selectedElement.style.width = newWidth + 'px';
-                selectedElement.style.height = newHeight + 'px';
-            }
-            
-            // Stop resizing
-            function stopResize() {
-                isResizing = false;
-            }
-            
-            // Move an element
+
             function moveElement(e) {
-                // Handle drawing
-                if (isDrawing) {
-                    draw(e);
-                    return;
-                }
-                
-                // Handle resizing
-                if (isResizing) {
-                    resize(e);
-                    return;
-                }
-                
-                // Handle moving
-                if (selectedElement && currentTool === 'select' && e.buttons === 1 && !isResizing) {
-                    const canvasRect = canvas.getBoundingClientRect();
-                    const x = e.clientX - canvasRect.left + canvasContainer.scrollLeft - offset.x;
-                    const y = e.clientY - canvasRect.top + canvasContainer.scrollTop - offset.y;
+                if (isDrawing) return;
+                if (selectedElement && currentTool === 'select' && e.buttons === 1) {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = e.clientX - rect.left + canvasContainer.scrollLeft - offset.x;
+                    const y = e.clientY - rect.top + canvasContainer.scrollTop - offset.y;
                     
-                    selectedElement.style.left = x + 'px';
-                    selectedElement.style.top = y + 'px';
-                    
-                    // Check if we need to expand canvas
+                    selectedElement.style.left = Math.max(0, x) + 'px';
+                    selectedElement.style.top = Math.max(0, y) + 'px';
                     expandCanvasIfNeeded(x + selectedElement.offsetWidth, y + selectedElement.offsetHeight);
                 }
             }
-            
-            // Handle erase functionality
-            function eraseElement(e) {
-                if (currentTool !== 'erase') return;
-                
-                let element = e.target;
-                
-                // Erase text boxes
-                if (element.classList.contains('text-box')) {
-                    const index = textElements.indexOf(element);
-                    if (index > -1) {
-                        textElements.splice(index, 1);
-                    }
-                    element.remove();
-                }
-                
-                // Erase images
-                if (element.tagName === 'IMG' && element.parentElement === canvas) {
-                    const index = imageElements.indexOf(element);
-                    if (index > -1) {
-                        imageElements.splice(index, 1);
-                    }
-                    element.remove();
-                }
-                
-                // For strokes, we need to check if the click is near any path
-                if (element === canvas || element.tagName === 'svg' || element.tagName === 'path') {
-                    const canvasRect = canvas.getBoundingClientRect();
-                    const x = e.clientX - canvasRect.left + canvasContainer.scrollLeft;
-                    const y = e.clientY - canvasRect.top + canvasContainer.scrollTop;
-                    
-                    // Check each stroke
-                    const svg = canvas.querySelector('svg');
-                    if (svg) {
-                        const pathElements = svg.querySelectorAll('path');
-                        pathElements.forEach((path, pathIndex) => {
-                            const stroke = strokeElements[pathIndex];
-                            if (stroke) {
-                                // Check if click is near any point in the stroke
-                                for (const point of stroke) {
-                                    const distance = Math.sqrt(Math.pow(point.x - x, 2) + Math.pow(point.y - y, 2));
-                                    if (distance < 10) { // 10px threshold for erasing
-                                        path.remove();
-                                        strokeElements.splice(pathIndex, 1);
-                                        paths.splice(pathIndex, 1);
-                                        return;
-                                    }
-                                }
-                            }
-                        });
-                    }
-                }
-            }
-            
-            // Handle image upload
+
             function handleImageUpload(e) {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -641,282 +431,76 @@
                     const img = document.createElement('img');
                     img.src = event.target.result;
                     img.style.position = 'absolute';
-                    
-                    // Position in center of current viewport
-                    const viewportCenterX = canvasContainer.scrollLeft + canvasContainer.offsetWidth / 2;
-                    const viewportCenterY = canvasContainer.scrollTop + canvasContainer.offsetHeight / 2;
-                    
-                    img.style.left = viewportCenterX + 'px';
-                    img.style.top = viewportCenterY + 'px';
-                    img.style.transform = 'translate(-50%, -50%)';
+                    img.style.left = canvasContainer.scrollLeft + 'px';
+                    img.style.top = canvasContainer.scrollTop + 'px';
                     img.style.maxWidth = '300px';
                     img.style.maxHeight = '300px';
-                    img.draggable = false;
-                    
                     canvas.appendChild(img);
                     imageElements.push(img);
-                    
-                    // Reset the file input
-                    document.getElementById('image-upload').value = '';
-                    
-                    // Auto-select the inserted image
-                    setActiveTool('select-tool');
-                    selectedElement = img;
-                    
-                    const rect = img.getBoundingClientRect();
-                    offset.x = rect.width / 2;
-                    offset.y = rect.height / 2;
-                    
-                    // Add selected class
-                    img.classList.add('selected');
-                    
-                    // Check if we need to expand the canvas
-                    expandCanvasIfNeeded(viewportCenterX + img.offsetWidth/2, viewportCenterY + img.offsetHeight/2);
                 };
-                
                 reader.readAsDataURL(file);
             }
-            
-            // Save canvas as PDF
+
             async function saveToPDF() {
-                // Show progress indicator
                 pdfProgress.style.display = 'block';
-                
                 try {
-                    // Wait for next frame to ensure UI updates
-                    await new Promise(resolve => requestAnimationFrame(resolve));
-                    
-                    // Save current scroll position
-                    const scrollLeft = canvasContainer.scrollLeft;
-                    const scrollTop = canvasContainer.scrollTop;
-                    
-                    // Calculate total content area by finding the rightmost and bottommost elements
-                    let maxRight = 0;
-                    let maxBottom = 0;
-                    
-                    // Check text elements
-                    textElements.forEach(el => {
-                        const right = el.offsetLeft + el.offsetWidth;
-                        const bottom = el.offsetTop + el.offsetHeight;
-                        maxRight = Math.max(maxRight, right);
-                        maxBottom = Math.max(maxBottom, bottom);
-                    });
-                    
-                    // Check image elements
-                    imageElements.forEach(el => {
-                        const right = el.offsetLeft + el.offsetWidth;
-                        const bottom = el.offsetTop + el.offsetHeight;
-                        maxRight = Math.max(maxRight, right);
-                        maxBottom = Math.max(maxBottom, bottom);
-                    });
-                    
-                    // Check paths for drawing
-                    const svg = canvas.querySelector('svg');
-                    if (svg) {
-                        strokeElements.forEach(stroke => {
-                            if (stroke && stroke.length > 0) {
-                                stroke.forEach(point => {
-                                    maxRight = Math.max(maxRight, point.x);
-                                    maxBottom = Math.max(maxBottom, point.y);
-                                });
-                            }
-                        });
-                    }
-                    
-                    // Add some margin
-                    maxRight += 100;
-                    maxBottom += 100;
-                    
-                    // Ensure minimum size
-                    maxRight = Math.max(maxRight, window.innerWidth);
-                    maxBottom = Math.max(maxBottom, window.innerHeight);
-                    
-                    // Create a new canvas element for PDF generation
-                    const tempContainer = document.createElement('div');
-                    tempContainer.style.position = 'absolute';
-                    tempContainer.style.left = '-9999px';
-                    tempContainer.style.width = maxRight + 'px';
-                    tempContainer.style.height = maxBottom + 'px';
-                    tempContainer.style.backgroundColor = 'black';
-                    document.body.appendChild(tempContainer);
-                    
-                    // Clone the content to the temporary container
-                    const clonedCanvas = canvas.cloneNode(true);
-                    clonedCanvas.style.width = maxRight + 'px';
-                    clonedCanvas.style.height = maxBottom + 'px';
-                    tempContainer.appendChild(clonedCanvas);
-                    
-                    // Generate PDF using html2canvas and jsPDF
                     const { jsPDF } = window.jspdf;
-                    
-                    // Create PDF with appropriate dimensions
-                    const pdfWidth = Math.min(maxRight, 4000); // Limit max width
-                    const pdfHeight = Math.min(maxBottom, 4000); // Limit max height
-                    const scaleFactor = Math.min(1, Math.min(pdfWidth/maxRight, pdfHeight/maxBottom));
-                    
-                    const pdf = new jsPDF({
-                        orientation: maxRight > maxBottom ? 'landscape' : 'portrait',
-                        unit: 'px',
-                        format: [pdfWidth, pdfHeight]
-                    });
-                    
-                    const canvasElement = await html2canvas(tempContainer, {
-                        backgroundColor: '#000000',
-                        scale: scaleFactor,
-                        useCORS: true,
-                        logging: false,
-                        width: maxRight,
-                        height: maxBottom
-                    });
-                    
+                    const pdf = new jsPDF();
+                    const canvasElement = await html2canvas(canvas);
                     const imgData = canvasElement.toDataURL('image/png');
                     
-                    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                    const imgWidth = pdf.internal.pageSize.getWidth();
+                    const imgHeight = (canvasElement.height * imgWidth) / canvasElement.width;
                     
-                    // Download the PDF
-                    pdf.save('infinite-canvas-notes.pdf');
-                    
-                    // Clean up
-                    document.body.removeChild(tempContainer);
-                    
-                    // Restore scroll position
-                    canvasContainer.scrollLeft = scrollLeft;
-                    canvasContainer.scrollTop = scrollTop;
+                    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                    pdf.save('canvas-notes.pdf');
                 } catch (error) {
-                    console.error('Error generating PDF:', error);
-                    alert('Failed to generate PDF. Please try again.');
+                    console.error('PDF generation error:', error);
+                    alert('Error generating PDF');
                 } finally {
-                    // Hide progress indicator
                     pdfProgress.style.display = 'none';
                 }
             }
-            
-            // Function to expand canvas if content approaches edges
-            function expandCanvasIfNeeded(x, y) {
-                const padding = 200; // Padding from edges before expanding
-                const expandAmount = 500; // How much to expand by
-                let needsExpansion = false;
-                
-                // Get current canvas dimensions
-                const currentWidth = parseFloat(canvas.style.width || canvas.offsetWidth);
-                const currentHeight = parseFloat(canvas.style.height || canvas.offsetHeight);
-                
-                // Check if we need to expand width
-                if (x > currentWidth - padding) {
-                    canvas.style.width = (currentWidth + expandAmount) + "px";
-                    needsExpansion = true;
-                }
-                
-                // Check if we need to expand height
-                if (y > currentHeight - padding) {
-                    canvas.style.height = (currentHeight + expandAmount) + "px";
-                    needsExpansion = true;
-                }
-                
-                // Generate more dots if canvas expanded
-                if (needsExpansion) {
-                    generateMoreDots(currentWidth, currentHeight);
-                }
-            }
-            
-            // Generate more dots when canvas expands
-            function generateMoreDots(startX, startY) {
-                const canvasWidth = canvas.offsetWidth;
-                const canvasHeight = canvas.offsetHeight;
-                const spacing = 50; // Same spacing as initial dots
-                
-                // Generate dots for new areas only
-                for (let x = startX - spacing; x < canvasWidth; x += spacing) {
-                    for (let y = 0; y < canvasHeight; y += spacing) {
-                        if (x >= startX || y >= startY) {
-                            const offsetX = Math.random() * 10 - 5;
-                            const offsetY = Math.random() * 10 - 5;
-                            
-                            const dot = document.createElement('div');
-                            dot.className = 'dot';
-                            dot.style.left = (x + offsetX) + 'px';
-                            dot.style.top = (y + offsetY) + 'px';
-                            canvas.appendChild(dot);
-                        }
-                    }
-                }
-                
-                // Fill in any dots in new vertical space
-                for (let x = 0; x < startX; x += spacing) {
-                    for (let y = startY - spacing; y < canvasHeight; y += spacing) {
-                        const offsetX = Math.random() * 10 - 5;
-                        const offsetY = Math.random() * 10 - 5;
-                        
-                        const dot = document.createElement('div');
-                        dot.className = 'dot';
-                        dot.style.left = (x + offsetX) + 'px';
-                        dot.style.top = (y + offsetY) + 'px';
-                        canvas.appendChild(dot);
-                    }
-                }
-            }
-            
-            // Initialize the app
+
             function init() {
                 generateDots();
                 
-                // Add event listeners for tools
-                document.getElementById('pen-tool').addEventListener('click', () => setActiveTool('pen-tool'));
-                document.getElementById('text-tool').addEventListener('click', () => setActiveTool('text-tool'));
-                document.getElementById('select-tool').addEventListener('click', () => setActiveTool('select-tool'));
-                document.getElementById('erase-tool').addEventListener('click', () => setActiveTool('erase-tool'));
-                document.getElementById('image-tool').addEventListener('click', () => setActiveTool('image-tool'));
-                document.getElementById('save-pdf').addEventListener('click', saveToPDF);
+                document.querySelectorAll('.tool').forEach(tool => {
+                    tool.addEventListener('click', () => setActiveTool(tool.id));
+                });
                 
-                // Add event listeners for drawing
                 canvas.addEventListener('mousedown', startDrawing);
                 canvas.addEventListener('mousemove', draw);
                 window.addEventListener('mouseup', stopDrawing);
                 
-                // Add event listeners for text
                 canvas.addEventListener('click', function(e) {
                     if (currentTool === 'text' && e.target === canvas) {
-                        const canvasRect = canvas.getBoundingClientRect();
-                        const x = e.clientX - canvasRect.left + canvasContainer.scrollLeft;
-                        const y = e.clientY - canvasRect.top + canvasContainer.scrollTop;
+                        const rect = canvas.getBoundingClientRect();
+                        const x = e.clientX - rect.left + canvasContainer.scrollLeft;
+                        const y = e.clientY - rect.top + canvasContainer.scrollTop;
                         createTextBox(x, y);
-                        expandCanvasIfNeeded(x, y);
                     }
                 });
                 
-                // Add event listeners for selection
                 canvas.addEventListener('mousedown', selectElement);
-                canvas.addEventListener('mousedown', startResize);
                 document.addEventListener('mousemove', moveElement);
-                document.addEventListener('mouseup', stopResize);
                 
-                // Add event listeners for erasing
-                canvas.addEventListener('click', eraseElement);
-                
-                // Add event listener for image upload
                 document.getElementById('image-upload').addEventListener('change', handleImageUpload);
+                document.getElementById('save-pdf').addEventListener('click', saveToPDF);
                 
-                // Add event listeners for color palette
                 document.querySelectorAll('.color-option').forEach(option => {
-                    option.addEventListener('click', function() {
-                        currentColor = this.getAttribute('data-color');
+                    option.addEventListener('click', () => {
+                        currentColor = option.dataset.color;
                         colorPalette.style.display = 'none';
                     });
                 });
                 
-                // Add event listener to close color palette when clicking elsewhere
-                document.addEventListener('click', function(e) {
-                    if (!e.target.closest('.color-palette') && !e.target.closest('#pen-tool')) {
-                        colorPalette.style.display = 'none';
-                    }
-                });
-                
-                // Center the canvas view initially
-                canvasContainer.scrollLeft = (canvas.offsetWidth - canvasContainer.offsetWidth) / 2;
-                canvasContainer.scrollTop = (canvas.offsetHeight - canvasContainer.offsetHeight) / 2;
+                canvasContainer.scrollTo(
+                    (canvas.offsetWidth - canvasContainer.offsetWidth) / 2,
+                    (canvas.offsetHeight - canvasContainer.offsetHeight) / 2
+                );
             }
-            
-            // Initialize the app
+
             init();
         });
     </script>
