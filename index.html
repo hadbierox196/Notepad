@@ -3,577 +3,765 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Note-Taking App</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Cedarville+Cursive&family=Indie+Flower&display=swap" rel="stylesheet">
+    <title>Grid Note-Taking App</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/indie-flower/1.0.0/indieflower.min.css" rel="stylesheet">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
+        
         body {
             font-family: Arial, sans-serif;
             overflow: hidden;
-        }
-
-        .app-container {
-            display: flex;
-            flex-direction: column;
+            background-color: #000;
             height: 100vh;
+            touch-action: none;
         }
-
-        .toolbar {
-            background-color: #333;
-            padding: 10px;
+        
+        #toolbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background-color: #222;
             display: flex;
             align-items: center;
-            justify-content: flex-start;
-            gap: 15px;
+            padding: 0 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            z-index: 100;
         }
-
-        .tool-btn {
-            background-color: #555;
-            color: white;
-            border: none;
-            border-radius: 5px;
+        
+        .tool {
             width: 40px;
             height: 40px;
+            border-radius: 50%;
+            background-color: #333;
             display: flex;
-            align-items: center;
             justify-content: center;
+            align-items: center;
+            margin-right: 15px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: all 0.2s;
         }
-
-        .tool-btn:hover {
-            background-color: #777;
+        
+        .tool:hover {
+            background-color: #444;
         }
-
-        .tool-btn.active {
-            background-color: #4a7dff;
+        
+        .tool.active {
+            background-color: #666;
         }
-
-        .save-btn {
-            margin-left: auto;
+        
+        .tool i {
+            color: #fff;
+            font-size: 20px;
         }
-
-        .canvas-area {
-            flex: 1;
-            background-color: #000;
-            position: relative;
+        
+        #canvas-container {
+            position: absolute;
+            top: 60px;
+            left: 0;
+            right: 0;
+            bottom: 0;
             overflow: hidden;
         }
-
-        .star {
+        
+        canvas {
             position: absolute;
-            background-color: white;
-            width: 2px;
-            height: 2px;
-            border-radius: 50%;
+            top: 0;
+            left: 0;
         }
-
-        .text-input {
-            position: absolute;
-            background-color: rgba(0, 0, 0, 0.7);
-            border: 1px solid #666;
-            color: white;
-            padding: 8px;
-            width: 300px;
-            z-index: 100;
+        
+        #grid-canvas {
+            z-index: 1;
         }
-
-        .color-picker {
+        
+        #drawing-canvas {
+            z-index: 2;
+        }
+        
+        #color-picker {
             position: absolute;
+            display: none;
             background-color: #333;
+            border-radius: 10px;
             padding: 10px;
-            border-radius: 5px;
-            display: flex;
-            gap: 10px;
-            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            z-index: 200;
         }
-
+        
         .color-option {
-            width: 25px;
-            height: 25px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
+            margin: 5px;
             cursor: pointer;
-            border: 1px solid white;
+            border: 2px solid transparent;
+            transition: transform 0.2s;
         }
-
-        .content-item {
+        
+        .color-option:hover {
+            transform: scale(1.2);
+        }
+        
+        .color-option.active {
+            border-color: white;
+        }
+        
+        #color-red { background-color: #ff3333; }
+        #color-blue { background-color: #3366ff; }
+        #color-yellow { background-color: #ffcc00; }
+        #color-green { background-color: #33cc33; }
+        #color-purple { background-color: #9933ff; }
+        #color-random { 
+            background: linear-gradient(135deg, #ff3333, #3366ff, #ffcc00, #33cc33, #9933ff);
+        }
+        
+        .text-box {
             position: absolute;
-            max-width: 300px;
-            word-wrap: break-word;
-            cursor: default;
-        }
-
-        .selected {
-            outline: 2px dashed white;
-        }
-
-        .main-heading {
-            font-family: 'Cedarville Cursive', cursive;
-            font-size: 28px;
-            font-weight: bold;
+            background-color: transparent;
+            min-width: 100px;
+            min-height: 30px;
+            padding: 8px;
+            border: 1px dashed rgba(255, 255, 255, 0.3);
             color: white;
-            text-align: center;
-        }
-
-        .side-heading {
-            font-family: 'Cedarville Cursive', cursive;
-            font-size: 20px;
-            font-weight: bold;
-            color: white;
-        }
-
-        .normal-text {
+            z-index: 10;
             font-family: 'Indie Flower', cursive;
-            font-size: 16px;
-            color: white;
+            overflow: hidden;
+            resize: both;
+            cursor: move;
         }
-
-        .drawing-path {
+        
+        .text-box.heading {
+            font-size: 24px;
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+        }
+        
+        .text-box:focus {
+            outline: none;
+            border: 1px dashed white;
+        }
+        
+        .selected {
+            border: 2px dashed white !important;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        
+        .resize-handle {
             position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: white;
+            border-radius: 50%;
+            z-index: 15;
+        }
+        
+        .resize-handle.top-left {
+            top: -5px;
+            left: -5px;
+            cursor: nw-resize;
+        }
+        
+        .resize-handle.top-right {
+            top: -5px;
+            right: -5px;
+            cursor: ne-resize;
+        }
+        
+        .resize-handle.bottom-left {
+            bottom: -5px;
+            left: -5px;
+            cursor: sw-resize;
+        }
+        
+        .resize-handle.bottom-right {
+            bottom: -5px;
+            right: -5px;
+            cursor: se-resize;
+        }
+        
+        .selection-box {
+            position: absolute;
+            border: 2px dashed white;
+            background-color: rgba(255, 255, 255, 0.1);
+            z-index: 5;
             pointer-events: none;
         }
+        
+        .selection-area {
+            position: absolute;
+            border: 2px dashed rgba(255, 255, 255, 0.7);
+            background-color: rgba(255, 255, 255, 0.1);
+            z-index: 5;
+            pointer-events: none;
+        }
+        
+        .text-input-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #333;
+            border-radius: 10px;
+            padding: 20px;
+            z-index: 300;
+            display: none;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
+            width: 90%;
+            max-width: 400px;
+        }
+        
+        .text-input-modal textarea {
+            width: 100%;
+            height: 100px;
+            background-color: #222;
+            border: 1px solid #444;
+            color: white;
+            font-family: 'Indie Flower', cursive;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            resize: vertical;
+        }
+        
+        .text-input-modal textarea:focus {
+            outline: none;
+            border-color: #666;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        
+        .modal-btn {
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .confirm-btn {
+            background-color: #3366ff;
+            color: white;
+        }
+        
+        .cancel-btn {
+            background-color: #444;
+            color: white;
+        }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div class="app-container">
-        <div class="toolbar">
-            <button class="tool-btn active" id="pen-tool" title="Pen Tool">
-                <i class="fas fa-pen"></i>
-            </button>
-            <button class="tool-btn" id="text-tool" title="Text Tool">
-                <i class="fas fa-font"></i>
-            </button>
-            <button class="tool-btn" id="select-tool" title="Select Tool">
-                <i class="fas fa-mouse-pointer"></i>
-            </button>
-            <button class="tool-btn" id="eraser-tool" title="Eraser Tool">
-                <i class="fas fa-eraser"></i>
-            </button>
-            <button class="tool-btn" id="image-tool" title="Insert Image">
-                <i class="fas fa-image"></i>
-            </button>
-            <button class="tool-btn save-btn" id="save-tool" title="Save as PDF">
-                <i class="fas fa-save"></i>
-            </button>
+    <div id="toolbar">
+        <div class="tool active" id="pen-tool" title="Pen Tool">
+            <i class="fas fa-pen"></i>
         </div>
-        <div class="canvas-area" id="canvas">
-            <!-- Stars will be generated by JavaScript -->
+        <div class="tool" id="text-tool" title="Text Tool">
+            <i class="fas fa-font"></i>
+        </div>
+        <div class="tool" id="select-tool" title="Select Tool">
+            <i class="fas fa-mouse-pointer"></i>
+        </div>
+        <!-- More tools can be added here -->
+    </div>
+    
+    <div id="canvas-container">
+        <canvas id="grid-canvas"></canvas>
+        <canvas id="drawing-canvas"></canvas>
+        <div id="selection-area" class="selection-area" style="display: none;"></div>
+    </div>
+    
+    <div id="color-picker">
+        <div class="color-option active" id="color-red" data-color="#ff3333"></div>
+        <div class="color-option" id="color-blue" data-color="#3366ff"></div>
+        <div class="color-option" id="color-yellow" data-color="#ffcc00"></div>
+        <div class="color-option" id="color-green" data-color="#33cc33"></div>
+        <div class="color-option" id="color-purple" data-color="#9933ff"></div>
+        <div class="color-option" id="color-random" data-color="random"></div>
+    </div>
+    
+    <div class="text-input-modal" id="text-input-modal">
+        <textarea id="text-input" placeholder="Enter your text here... Use *[text]* for headings"></textarea>
+        <div class="modal-buttons">
+            <button class="modal-btn cancel-btn" id="cancel-text-btn">Cancel</button>
+            <button class="modal-btn confirm-btn" id="confirm-text-btn">Add Text</button>
         </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // DOM Elements
-            const canvas = document.getElementById('canvas');
+            // Canvas setup
+            const gridCanvas = document.getElementById('grid-canvas');
+            const drawingCanvas = document.getElementById('drawing-canvas');
+            const gridCtx = gridCanvas.getContext('2d');
+            const drawCtx = drawingCanvas.getContext('2d');
+            
+            // Tools
             const penTool = document.getElementById('pen-tool');
             const textTool = document.getElementById('text-tool');
             const selectTool = document.getElementById('select-tool');
-            const eraserTool = document.getElementById('eraser-tool');
-            const imageTool = document.getElementById('image-tool');
-            const saveTool = document.getElementById('save-tool');
             
-            // State
-            let currentTool = 'pen';
+            // Color picker
+            const colorPicker = document.getElementById('color-picker');
+            const colorOptions = document.querySelectorAll('.color-option');
+            
+            // Text modal
+            const textModal = document.getElementById('text-input-modal');
+            const textInput = document.getElementById('text-input');
+            const confirmTextBtn = document.getElementById('confirm-text-btn');
+            const cancelTextBtn = document.getElementById('cancel-text-btn');
+            
+            // Selection
+            const selectionArea = document.getElementById('selection-area');
+            
+            // State variables
             let isDrawing = false;
-            let currentColor = '#ffffff';
-            let currentPath = null;
-            let pathPoints = [];
-            let selectedItem = null;
-            let contentItems = [];
-            let startX, startY;
-            let moveOffsetX, moveOffsetY;
-            let longPressTimeout = null;
-            let drawingId = 0;
-            
-            // Available colors
-            const colors = ['#ff0000', '#0000ff', '#ffff00', '#800080', '#00ff00'];
-            
-            // Create stars in the background
-            createStars();
-            
-            // Set up event listeners
-            setupEventListeners();
-            
-            function createStars() {
-                const numStars = 200;
-                for (let i = 0; i < numStars; i++) {
-                    const star = document.createElement('div');
-                    star.classList.add('star');
-                    star.style.left = `${Math.random() * 100}%`;
-                    star.style.top = `${Math.random() * 100}%`;
-                    star.style.opacity = (Math.random() * 0.7) + 0.3;
-                    canvas.appendChild(star);
+            let lastX = 0;
+            let lastY = 0;
+            let currentColor = '#ff3333';
+            let currentTool = 'pen';
+            let penPressTimer;
+            let clickX, clickY;
+            let selectedElement = null;
+            let resizing = false;
+            let resizeHandle = null;
+            let isSelecting = false;
+            let selectionStartX = 0;
+            let selectionStartY = 0;
+
+            // Initialize
+            resizeCanvases();
+
+            // Canvas resizing
+            function resizeCanvases() {
+                const container = document.getElementById('canvas-container');
+                gridCanvas.width = container.offsetWidth;
+                gridCanvas.height = container.offsetHeight;
+                drawingCanvas.width = container.offsetWidth;
+                drawingCanvas.height = container.offsetHeight;
+                drawGrid();
+            }
+
+            // Grid drawing
+            function drawGrid() {
+                gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
+                gridCtx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                const spacing = 20;
+                const dotSize = 1;
+
+                for (let x = spacing; x < gridCanvas.width; x += spacing) {
+                    for (let y = spacing; y < gridCanvas.height; y += spacing) {
+                        gridCtx.beginPath();
+                        gridCtx.arc(x, y, dotSize, 0, Math.PI * 2);
+                        gridCtx.fill();
+                    }
                 }
             }
-            
-            function setupEventListeners() {
-                // Tool selection
-                penTool.addEventListener('click', () => setActiveTool('pen'));
-                textTool.addEventListener('click', () => setActiveTool('text'));
-                selectTool.addEventListener('click', () => setActiveTool('select'));
-                eraserTool.addEventListener('click', () => setActiveTool('eraser'));
-                imageTool.addEventListener('click', handleImageTool);
-                saveTool.addEventListener('click', handleSavePDF);
-                
-                // Canvas events
-                canvas.addEventListener('mousedown', handleCanvasMouseDown);
-                canvas.addEventListener('mousemove', handleCanvasMouseMove);
-                canvas.addEventListener('mouseup', handleCanvasMouseUp);
-                canvas.addEventListener('mouseleave', handleCanvasMouseUp);
+
+            // Drawing functions
+            function startDrawing(e) {
+                if (currentTool !== 'pen') return;
+                isDrawing = true;
+                const pos = getEventPosition(e);
+                lastX = pos.x;
+                lastY = pos.y;
             }
-            
+
+            function draw(e) {
+                if (!isDrawing || currentTool !== 'pen') return;
+                e.preventDefault();
+
+                const pos = getEventPosition(e);
+                
+                drawCtx.lineJoin = 'round';
+                drawCtx.lineCap = 'round';
+                drawCtx.lineWidth = 3;
+                drawCtx.strokeStyle = currentColor;
+
+                drawCtx.beginPath();
+                drawCtx.moveTo(lastX, lastY);
+                drawCtx.lineTo(pos.x, pos.y);
+                drawCtx.stroke();
+
+                lastX = pos.x;
+                lastY = pos.y;
+            }
+
+            function stopDrawing() {
+                isDrawing = false;
+            }
+
+            // Event position handling
+            function getEventPosition(e) {
+                let x, y;
+                if (e.type.includes('touch')) {
+                    x = e.touches[0].clientX;
+                    y = e.touches[0].clientY - 60; // Adjust for toolbar
+                } else {
+                    x = e.clientX;
+                    y = e.clientY - 60; // Adjust for toolbar
+                }
+                return { x, y };
+            }
+
+            // Color picker functions
+            function showColorPicker(x, y) {
+                colorPicker.style.display = 'flex';
+                colorPicker.style.left = `${x - 80}px`;
+                colorPicker.style.top = `${y + 10}px`;
+            }
+
+            function hideColorPicker() {
+                colorPicker.style.display = 'none';
+            }
+
+            function selectColor(color) {
+                currentColor = color === 'random' ? getRandomColor() : color;
+                colorOptions.forEach(option => {
+                    option.classList.toggle('active', option.dataset.color === color);
+                });
+                hideColorPicker();
+            }
+
+            function getRandomColor() {
+                const colors = ['#ff3333', '#3366ff', '#ffcc00', '#33cc33', '#9933ff'];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+
+            // Text box functions
+            function showTextModal(x, y) {
+                textInput.value = '';
+                textModal.style.display = 'block';
+                clickX = x;
+                clickY = y;
+            }
+
+            function hideTextModal() {
+                textModal.style.display = 'none';
+            }
+
+            function addTextBox() {
+                const text = textInput.value.trim();
+                if (!text) return;
+
+                const textBox = document.createElement('div');
+                textBox.contentEditable = true;
+                textBox.className = 'text-box';
+                textBox.style.color = currentColor;
+
+                const headingRegex = /^\*\[(.*)\]\*$/;
+                const match = text.match(headingRegex);
+                
+                if (match) {
+                    textBox.innerText = match[1];
+                    textBox.classList.add('heading');
+                } else {
+                    textBox.innerText = text;
+                }
+
+                textBox.style.left = `${clickX}px`;
+                textBox.style.top = `${clickY}px`;
+
+                textBox.addEventListener('click', (e) => {
+                    if (currentTool === 'select') {
+                        e.stopPropagation();
+                        selectElement(textBox);
+                    }
+                });
+
+                makeTextBoxDraggable(textBox);
+                document.getElementById('canvas-container').appendChild(textBox);
+                hideTextModal();
+            }
+
+            // Draggable functionality
+            function makeTextBoxDraggable(element) {
+                let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+
+                element.addEventListener('mousedown', dragMouseDown);
+                element.addEventListener('touchstart', dragTouchStart, { passive: false });
+
+                function dragMouseDown(e) {
+                    if (currentTool !== 'select' || e.target.classList.contains('resize-handle')) return;
+                    e.preventDefault();
+                    selectElement(element);
+                    pos3 = e.clientX;
+                    pos4 = e.clientY;
+                    document.addEventListener('mouseup', closeDragElement);
+                    document.addEventListener('mousemove', elementDrag);
+                }
+
+                function dragTouchStart(e) {
+                    if (currentTool !== 'select' || e.target.classList.contains('resize-handle')) return;
+                    e.preventDefault();
+                    selectElement(element);
+                    pos3 = e.touches[0].clientX;
+                    pos4 = e.touches[0].clientY;
+                    document.addEventListener('touchend', closeTouchDragElement);
+                    document.addEventListener('touchmove', elementTouchDrag, { passive: false });
+                }
+
+                function elementDrag(e) {
+                    e.preventDefault();
+                    pos1 = pos3 - e.clientX;
+                    pos2 = pos4 - e.clientY;
+                    pos3 = e.clientX;
+                    pos4 = e.clientY;
+                    element.style.top = `${element.offsetTop - pos2}px`;
+                    element.style.left = `${element.offsetLeft - pos1}px`;
+                }
+
+                function elementTouchDrag(e) {
+                    e.preventDefault();
+                    pos1 = pos3 - e.touches[0].clientX;
+                    pos2 = pos4 - e.touches[0].clientY;
+                    pos3 = e.touches[0].clientX;
+                    pos4 = e.touches[0].clientY;
+                    element.style.top = `${element.offsetTop - pos2}px`;
+                    element.style.left = `${element.offsetLeft - pos1}px`;
+                }
+
+                function closeDragElement() {
+                    document.removeEventListener('mouseup', closeDragElement);
+                    document.removeEventListener('mousemove', elementDrag);
+                }
+
+                function closeTouchDragElement() {
+                    document.removeEventListener('touchend', closeTouchDragElement);
+                    document.removeEventListener('touchmove', elementTouchDrag);
+                }
+            }
+
+            // Selection functionality
+            function selectElement(element) {
+                clearSelection();
+                selectedElement = element;
+                element.classList.add('selected');
+                addResizeHandles(element);
+            }
+
+            function addResizeHandles(element) {
+                const positions = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
+                positions.forEach(pos => {
+                    const handle = document.createElement('div');
+                    handle.className = `resize-handle ${pos}`;
+                    handle.dataset.position = pos;
+                    handle.addEventListener('mousedown', startResize);
+                    handle.addEventListener('touchstart', startResizeTouchEvent, { passive: false });
+                    element.appendChild(handle);
+                });
+            }
+
+            function removeResizeHandles(element) {
+                element.querySelectorAll('.resize-handle').forEach(handle => handle.remove());
+            }
+
+            function clearSelection() {
+                document.querySelectorAll('.selected').forEach(el => {
+                    el.classList.remove('selected');
+                    removeResizeHandles(el);
+                });
+                selectedElement = null;
+                resizing = false;
+                resizeHandle = null;
+            }
+
+            function startResize(e) {
+                e.stopPropagation();
+                resizing = true;
+                resizeHandle = e.target.dataset.position;
+                document.addEventListener('mousemove', resize);
+                document.addEventListener('mouseup', stopResize);
+            }
+
+            function startResizeTouchEvent(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                resizing = true;
+                resizeHandle = e.target.dataset.position;
+                document.addEventListener('touchmove', resizeTouch, { passive: false });
+                document.addEventListener('touchend', stopResizeTouch);
+            }
+
+            function resize(e) {
+                if (!resizing || !selectedElement) return;
+                const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
+                const relativeX = e.clientX - containerRect.left;
+                const relativeY = e.clientY - containerRect.top;
+                updateElementSize(relativeX, relativeY);
+            }
+
+            function resizeTouch(e) {
+                if (!resizing || !selectedElement) return;
+                e.preventDefault();
+                const touch = e.touches[0];
+                const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
+                const relativeX = touch.clientX - containerRect.left;
+                const relativeY = touch.clientY - containerRect.top;
+                updateElementSize(relativeX, relativeY);
+            }
+
+            function updateElementSize(x, y) {
+                const rect = selectedElement.getBoundingClientRect();
+                const currentLeft = parseInt(selectedElement.style.left || 0);
+                const currentTop = parseInt(selectedElement.style.top || 0);
+
+                switch(resizeHandle) {
+                    case 'top-left':
+                        selectedElement.style.width = `${rect.width - (x - currentLeft)}px`;
+                        selectedElement.style.height = `${rect.height - (y - currentTop)}px`;
+                        selectedElement.style.left = `${x}px`;
+                        selectedElement.style.top = `${y}px`;
+                        break;
+                    case 'top-right':
+                        selectedElement.style.width = `${x - currentLeft}px`;
+                        selectedElement.style.height = `${rect.height - (y - currentTop)}px`;
+                        selectedElement.style.top = `${y}px`;
+                        break;
+                    case 'bottom-left':
+                        selectedElement.style.width = `${rect.width - (x - currentLeft)}px`;
+                        selectedElement.style.height = `${y - currentTop}px`;
+                        selectedElement.style.left = `${x}px`;
+                        break;
+                    case 'bottom-right':
+                        selectedElement.style.width = `${x - currentLeft}px`;
+                        selectedElement.style.height = `${y - currentTop}px`;
+                        break;
+                }
+            }
+
+            function stopResize() {
+                resizing = false;
+                document.removeEventListener('mousemove', resize);
+                document.removeEventListener('mouseup', stopResize);
+            }
+
+            function stopResizeTouch() {
+                resizing = false;
+                document.removeEventListener('touchmove', resizeTouch);
+                document.removeEventListener('touchend', stopResizeTouch);
+            }
+
+            // Area selection
+            function startAreaSelection(e) {
+                if (currentTool !== 'select') return;
+                clearSelection();
+                isSelecting = true;
+
+                const pos = getEventPosition(e);
+                selectionStartX = pos.x;
+                selectionStartY = pos.y;
+
+                selectionArea.style.left = `${selectionStartX}px`;
+                selectionArea.style.top = `${selectionStartY}px`;
+                selectionArea.style.width = '0px';
+                selectionArea.style.height = '0px';
+                selectionArea.style.display = 'block';
+
+                document.addEventListener('mousemove', updateAreaSelection);
+                document.addEventListener('mouseup', endAreaSelection);
+            }
+
+            function updateAreaSelection(e) {
+                if (!isSelecting) return;
+                const pos = getEventPosition(e);
+                
+                const width = pos.x - selectionStartX;
+                const height = pos.y - selectionStartY;
+
+                selectionArea.style.width = `${Math.abs(width)}px`;
+                selectionArea.style.height = `${Math.abs(height)}px`;
+                selectionArea.style.left = `${width < 0 ? pos.x : selectionStartX}px`;
+                selectionArea.style.top = `${height < 0 ? pos.y : selectionStartY}px`;
+            }
+
+            function endAreaSelection() {
+                if (!isSelecting) return;
+                isSelecting = false;
+
+                const selRect = selectionArea.getBoundingClientRect();
+                const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
+
+                document.querySelectorAll('.text-box').forEach(box => {
+                    const boxRect = box.getBoundingClientRect();
+                    if (boxRect.left < selRect.right && 
+                        boxRect.right > selRect.left &&
+                        boxRect.top < selRect.bottom &&
+                        boxRect.bottom > selRect.top) {
+                        selectElement(box);
+                    }
+                });
+
+                selectionArea.style.display = 'none';
+                document.removeEventListener('mousemove', updateAreaSelection);
+                document.removeEventListener('mouseup', endAreaSelection);
+            }
+
+            // Event listeners
+            window.addEventListener('resize', resizeCanvases);
+
+            // Tool switching
+            penTool.addEventListener('click', () => setActiveTool('pen'));
+            textTool.addEventListener('click', () => setActiveTool('text'));
+            selectTool.addEventListener('click', () => setActiveTool('select'));
+
             function setActiveTool(tool) {
                 currentTool = tool;
-                
-                // Update UI
-                document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+                [penTool, textTool, selectTool].forEach(t => t.classList.remove('active'));
                 document.getElementById(`${tool}-tool`).classList.add('active');
-                
-                // Reset state
-                clearColorPicker();
-                removeTextInput();
-                
-                // Deselect any selected item
-                if (selectedItem !== null) {
-                    document.getElementById(`content-${selectedItem}`).classList.remove('selected');
-                    selectedItem = null;
+                clearSelection();
+            }
+
+            // Canvas interactions
+            drawingCanvas.addEventListener('mousedown', e => {
+                if (currentTool === 'pen') startDrawing(e);
+                else if (currentTool === 'select') startAreaSelection(e);
+            });
+
+            drawingCanvas.addEventListener('touchstart', e => {
+                if (currentTool === 'pen') startDrawing(e);
+                else if (currentTool === 'select') startAreaSelection(e);
+            });
+
+            drawingCanvas.addEventListener('click', e => {
+                if (currentTool === 'text') {
+                    const pos = getEventPosition(e);
+                    showTextModal(pos.x, pos.y + 60);
                 }
-                
-                // Change cursor based on tool
-                switch(tool) {
-                    case 'pen':
-                        canvas.style.cursor = 'crosshair';
-                        break;
-                    case 'text':
-                        canvas.style.cursor = 'text';
-                        break;
-                    case 'select':
-                        canvas.style.cursor = 'default';
-                        break;
-                    case 'eraser':
-                        canvas.style.cursor = 'not-allowed';
-                        break;
-                    default:
-                        canvas.style.cursor = 'default';
+            });
+
+            // Color picker events
+            colorOptions.forEach(option => {
+                option.addEventListener('click', () => selectColor(option.dataset.color));
+            });
+
+            document.addEventListener('click', e => {
+                if (!colorPicker.contains(e.target) && e.target !== penTool) {
+                    hideColorPicker();
                 }
-            }
-            
-            function handleCanvasMouseDown(e) {
-                const rect = canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                
-                startX = x;
-                startY = y;
-                
-                switch(currentTool) {
-                    case 'pen':
-                        isDrawing = true;
-                        pathPoints = [{x, y}];
-                        startDrawing(x, y);
-                        
-                        // Set up long press for color picker
-                        longPressTimeout = setTimeout(() => {
-                            showColorPicker(x, y);
-                        }, 500);
-                        break;
-                        
-                    case 'text':
-                        createTextInput(x, y);
-                        break;
-                        
-                    case 'select':
-                        // Check if clicked on any content item
-                        const clickedItem = findClickedItem(x, y);
-                        if (clickedItem !== null) {
-                            if (selectedItem !== null) {
-                                document.getElementById(`content-${selectedItem}`).classList.remove('selected');
-                            }
-                            
-                            selectedItem = clickedItem;
-                            document.getElementById(`content-${selectedItem}`).classList.add('selected');
-                            
-                            // Calculate offset for moving
-                            const item = contentItems[selectedItem];
-                            moveOffsetX = x - item.x;
-                            moveOffsetY = y - item.y;
-                        } else {
-                            // Clicked on empty space, deselect
-                            if (selectedItem !== null) {
-                                document.getElementById(`content-${selectedItem}`).classList.remove('selected');
-                                selectedItem = null;
-                            }
-                        }
-                        break;
-                        
-                    case 'eraser':
-                        if (selectedItem !== null) {
-                            // Remove the selected item
-                            document.getElementById(`content-${selectedItem}`).remove();
-                            contentItems.splice(selectedItem, 1);
-                            selectedItem = null;
-                            
-                            // Update IDs of remaining elements
-                            updateContentItemIds();
-                        }
-                        break;
-                }
-            }
-            
-            function handleCanvasMouseMove(e) {
-                if (!isDrawing && selectedItem === null) return;
-                
-                const rect = canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                
-                if (isDrawing && currentTool === 'pen') {
-                    // Add point to current path
-                    pathPoints.push({x, y});
-                    updateDrawingPath();
-                } else if (selectedItem !== null && currentTool === 'select') {
-                    // Move the selected item
-                    const newX = x - moveOffsetX;
-                    const newY = y - moveOffsetY;
-                    
-                    const element = document.getElementById(`content-${selectedItem}`);
-                    element.style.left = `${newX}px`;
-                    element.style.top = `${newY}px`;
-                    
-                    // Update item position in state
-                    contentItems[selectedItem].x = newX;
-                    contentItems[selectedItem].y = newY;
-                }
-            }
-            
-            function handleCanvasMouseUp() {
-                if (isDrawing && currentTool === 'pen') {
-                    isDrawing = false;
-                    finalizeDrawing();
-                }
-                
-                // Clear long press timeout
-                if (longPressTimeout) {
-                    clearTimeout(longPressTimeout);
-                    longPressTimeout = null;
-                }
-            }
-            
-            function startDrawing(x, y) {
-                currentPath = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-                currentPath.classList.add('drawing-path');
-                currentPath.setAttribute('width', '100%');
-                currentPath.setAttribute('height', '100%');
-                currentPath.style.position = 'absolute';
-                currentPath.style.left = '0';
-                currentPath.style.top = '0';
-                currentPath.style.pointerEvents = 'none';
-                
-                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                path.setAttribute('stroke', currentColor);
-                path.setAttribute('stroke-width', '2');
-                path.setAttribute('fill', 'none');
-                path.setAttribute('d', `M ${x} ${y}`);
-                
-                currentPath.appendChild(path);
-                canvas.appendChild(currentPath);
-            }
-            
-            function updateDrawingPath() {
-                if (!currentPath) return;
-                
-                const path = currentPath.querySelector('path');
-                let d = `M ${pathPoints[0].x} ${pathPoints[0].y}`;
-                
-                for (let i = 1; i < pathPoints.length; i++) {
-                    d += ` L ${pathPoints[i].x} ${pathPoints[i].y}`;
-                }
-                
-                path.setAttribute('d', d);
-            }
-            
-            function finalizeDrawing() {
-                if (pathPoints.length < 2) {
-                    // Remove single-point paths
-                    if (currentPath) currentPath.remove();
-                    currentPath = null;
-                    return;
-                }
-                
-                // Add to content items
-                const id = contentItems.length;
-                contentItems.push({
-                    type: 'drawing',
-                    id: `drawing-${drawingId++}`,
-                    path: pathPoints,
-                    color: currentColor,
-                    x: Math.min(...pathPoints.map(p => p.x)),
-                    y: Math.min(...pathPoints.map(p => p.y))
-                });
-                
-                // Set ID for the path for later selection
-                currentPath.id = `content-${id}`;
-                currentPath = null;
-            }
-            
-            function showColorPicker(x, y) {
-                clearColorPicker();
-                
-                const colorPicker = document.createElement('div');
-                colorPicker.classList.add('color-picker');
-                colorPicker.style.left = `${x}px`;
-                colorPicker.style.top = `${y}px`;
-                
-                colors.forEach(color => {
-                    const option = document.createElement('div');
-                    option.classList.add('color-option');
-                    option.style.backgroundColor = color;
-                    option.addEventListener('click', () => {
-                        currentColor = color;
-                        clearColorPicker();
-                    });
-                    colorPicker.appendChild(option);
-                });
-                
-                canvas.appendChild(colorPicker);
-            }
-            
-            function clearColorPicker() {
-                const existingPicker = document.querySelector('.color-picker');
-                if (existingPicker) existingPicker.remove();
-            }
-            
-            function createTextInput(x, y) {
-                removeTextInput();
-                
-                const textInput = document.createElement('input');
-                textInput.type = 'text';
-                textInput.classList.add('text-input');
-                textInput.style.left = `${x}px`;
-                textInput.style.top = `${y}px`;
-                textInput.placeholder = 'Type text here... Use **[text]** for main heading or *[text]* for side heading';
-                
-                textInput.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') {
-                        const text = textInput.value.trim();
-                        if (text) {
-                            addTextContent(text, x, y);
-                        }
-                        removeTextInput();
-                    } else if (e.key === 'Escape') {
-                        removeTextInput();
-                    }
-                });
-                
-                canvas.appendChild(textInput);
-                textInput.focus();
-            }
-            
-            function removeTextInput() {
-                const existingInput = document.querySelector('.text-input');
-                if (existingInput) existingInput.remove();
-            }
-            
-            function addTextContent(text, x, y) {
-                const id = contentItems.length;
-                const contentItem = document.createElement('div');
-                contentItem.classList.add('content-item');
-                contentItem.id = `content-${id}`;
-                contentItem.style.left = `${x}px`;
-                contentItem.style.top = `${y}px`;
-                
-                // Process formatting
-                let className, formattedText, color;
-                
-                if (text.match(/\*\*\[(.*?)\]\*\*/)) {
-                    // Main heading
-                    className = 'main-heading';
-                    formattedText = text.match(/\*\*\[(.*?)\]\*\*/)[1];
-                } else if (text.match(/\*\[(.*?)\]\*/)) {
-                    // Side heading
-                    className = 'side-heading';
-                    formattedText = text.match(/\*\[(.*?)\]\*/)[1];
-                } else {
-                    // Normal text
-                    className = 'normal-text';
-                    formattedText = text;
-                    color = colors[Math.floor(Math.random() * colors.length)];
-                }
-                
-                contentItem.classList.add(className);
-                contentItem.textContent = formattedText;
-                
-                if (color) {
-                    contentItem.style.color = color;
-                }
-                
-                canvas.appendChild(contentItem);
-                
-                // Add to content items
-                contentItems.push({
-                    type: 'text',
-                    content: text,
-                    formattedText,
-                    class: className,
-                    color,
-                    x,
-                    y
-                });
-            }
-            
-            function findClickedItem(x, y) {
-                for (let i = contentItems.length - 1; i >= 0; i--) {
-                    const item = contentItems[i];
-                    const element = document.getElementById(`content-${i}`);
-                    
-                    if (!element) continue;
-                    
-                    const rect = element.getBoundingClientRect();
-                    const canvasRect = canvas.getBoundingClientRect();
-                    
-                    // Adjust coordinates relative to canvas
-                    const adjustedRect = {
-                        left: rect.left - canvasRect.left,
-                        top: rect.top - canvasRect.top,
-                        right: rect.right - canvasRect.left,
-                        bottom: rect.bottom - canvasRect.top
-                    };
-                    
-                    if (x >= adjustedRect.left && x <= adjustedRect.right && 
-                        y >= adjustedRect.top && y <= adjustedRect.bottom) {
-                        return i;
-                    }
-                }
-                
-                return null;
-            }
-            
-            function updateContentItemIds() {
-                contentItems.forEach((item, index) => {
-                    const element = document.getElementById(`content-${index}`);
-                    if (element) {
-                        element.id = `content-${index}`;
-                    }
-                });
-            }
-            
-            function handleImageTool() {
-                alert('Image insertion would be implemented here in a real application.');
-                // In a real implementation, this would open a file picker
-                // and handle image uploads
-            }
-            
-            function handleSavePDF() {
-                alert('Saving as PDF would be implemented here in a real application.');
-                // In a real implementation, this would convert the canvas
-                // and all content to a PDF file and prompt a download
-            }
+            });
+
+            // Text modal events
+            confirmTextBtn.addEventListener('click', addTextBox);
+            cancelTextBtn.addEventListener('click', hideTextModal);
+            document.addEventListener('keydown', e => {
+                if (e.key === 'Escape') hideTextModal();
+            });
+
+            // Drawing events
+            drawingCanvas.addEventListener('mousemove', draw);
+            drawingCanvas.addEventListener('mouseup', stopDrawing);
+            drawingCanvas.addEventListener('mouseout', stopDrawing);
+            drawingCanvas.addEventListener('touchmove', draw);
+            drawingCanvas.addEventListener('touchend', stopDrawing);
         });
     </script>
 </body>
