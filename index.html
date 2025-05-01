@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Annotation App</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Note-Taking App</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Cedarville+Cursive&family=Indie+Flower&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -12,380 +14,566 @@
         }
 
         body {
-            background: #000;
-            height: 100vh;
+            font-family: Arial, sans-serif;
             overflow: hidden;
-            touch-action: none;
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
 
         .toolbar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: #333;
+            background-color: #333;
             padding: 10px;
             display: flex;
+            align-items: center;
+            justify-content: flex-start;
             gap: 15px;
-            z-index: 1000;
         }
 
         .tool-btn {
-            background: none;
-            border: none;
+            background-color: #555;
             color: white;
-            font-size: 24px;
+            border: none;
+            border-radius: 5px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
-            padding: 5px 15px;
+            transition: background-color 0.3s;
+        }
+
+        .tool-btn:hover {
+            background-color: #777;
+        }
+
+        .tool-btn.active {
+            background-color: #4a7dff;
+        }
+
+        .save-btn {
+            margin-left: auto;
+        }
+
+        .canvas-area {
+            flex: 1;
+            background-color: #000;
             position: relative;
+            overflow: hidden;
         }
 
-        .canvas-container {
-            position: relative;
-            height: 100vh;
-            margin-top: 50px;
-        }
-
-        #mainCanvas {
+        .star {
             position: absolute;
-            background: transparent;
-            touch-action: none;
-        }
-
-        .dot {
-            position: absolute;
-            background: white;
+            background-color: white;
             width: 2px;
             height: 2px;
             border-radius: 50%;
         }
 
-        .text-element {
+        .text-input {
             position: absolute;
+            background-color: rgba(0, 0, 0, 0.7);
+            border: 1px solid #666;
             color: white;
-            font-family: 'Indie Flower', cursive;
-            cursor: move;
-            max-width: 300px;
-            user-select: none;
-            touch-action: none;
+            padding: 8px;
+            width: 300px;
+            z-index: 100;
         }
 
-        .selected {
-            outline: 2px dashed white !important;
-        }
-
-        .color-palette {
+        .color-picker {
             position: absolute;
-            display: none;
-            background: #444;
+            background-color: #333;
             padding: 10px;
             border-radius: 5px;
-            bottom: 60px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
         }
 
         .color-option {
-            width: 30px;
-            height: 30px;
+            width: 25px;
+            height: 25px;
             border-radius: 50%;
-            margin: 5px;
             cursor: pointer;
-            border: 2px solid white;
+            border: 1px solid white;
+        }
+
+        .content-item {
+            position: absolute;
+            max-width: 300px;
+            word-wrap: break-word;
+            cursor: default;
+        }
+
+        .selected {
+            outline: 2px dashed white;
+        }
+
+        .main-heading {
+            font-family: 'Cedarville Cursive', cursive;
+            font-size: 28px;
+            font-weight: bold;
+            color: white;
+            text-align: center;
+        }
+
+        .side-heading {
+            font-family: 'Cedarville Cursive', cursive;
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+        }
+
+        .normal-text {
+            font-family: 'Indie Flower', cursive;
+            font-size: 16px;
+            color: white;
+        }
+
+        .drawing-path {
+            position: absolute;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
-    <div class="toolbar">
-        <button class="tool-btn" id="penBtn" title="Pen"><i class="fas fa-pen"></i></button>
-        <button class="tool-btn" id="textBtn" title="Text"><i class="fas fa-font"></i></button>
-        <button class="tool-btn" id="selectBtn" title="Select"><i class="fas fa-vector-square"></i></button>
-        <button class="tool-btn" id="eraseBtn" title="Erase"><i class="fas fa-eraser"></i></button>
-        <button class="tool-btn" id="saveBtn" title="Save PDF"><i class="fas fa-file-pdf"></i></button>
-        <div class="color-palette" id="colorPalette">
-            <div class="color-option" style="background: red" data-color="red"></div>
-            <div class="color-option" style="background: blue" data-color="blue"></div>
-            <div class="color-option" style="background: yellow" data-color="yellow"></div>
-            <div class="color-option" style="background: purple" data-color="purple"></div>
-            <div class="color-option" style="background: green" data-color="green"></div>
+    <div class="app-container">
+        <div class="toolbar">
+            <button class="tool-btn active" id="pen-tool" title="Pen Tool">
+                <i class="fas fa-pen"></i>
+            </button>
+            <button class="tool-btn" id="text-tool" title="Text Tool">
+                <i class="fas fa-font"></i>
+            </button>
+            <button class="tool-btn" id="select-tool" title="Select Tool">
+                <i class="fas fa-mouse-pointer"></i>
+            </button>
+            <button class="tool-btn" id="eraser-tool" title="Eraser Tool">
+                <i class="fas fa-eraser"></i>
+            </button>
+            <button class="tool-btn" id="image-tool" title="Insert Image">
+                <i class="fas fa-image"></i>
+            </button>
+            <button class="tool-btn save-btn" id="save-tool" title="Save as PDF">
+                <i class="fas fa-save"></i>
+            </button>
+        </div>
+        <div class="canvas-area" id="canvas">
+            <!-- Stars will be generated by JavaScript -->
         </div>
     </div>
 
-    <div class="canvas-container">
-        <canvas id="mainCanvas"></canvas>
-    </div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.5.3/jspdf.min.js"></script>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script>
-        const canvas = document.getElementById('mainCanvas');
-        const ctx = canvas.getContext('2d');
-        let isDrawing = false;
-        let currentTool = 'pen';
-        let currentColor = 'white';
-        let elements = [];
-        let selectedElement = null;
-        let startX, startY;
-        let longPressTimer;
-
-        // Initialize canvas
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight - 50;
-        }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
-
-        // Create background dots
-        function createDots() {
-            const container = document.body;
-            for(let i = 0; i < 200; i++) {
-                const dot = document.createElement('div');
-                dot.className = 'dot';
-                dot.style.left = Math.random() * window.innerWidth + 'px';
-                dot.style.top = (Math.random() * window.innerHeight + 50) + 'px';
-                container.appendChild(dot);
-            }
-        }
-        createDots();
-
-        // Tools functionality
-        document.querySelectorAll('.tool-btn').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                if(this.id === 'penBtn') return;
-                currentTool = this.id.replace('Btn', '');
-                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-            });
-        });
-
-        // Pen tool with color selection
-        const penBtn = document.getElementById('penBtn');
-        const colorPalette = document.getElementById('colorPalette');
-
-        penBtn.addEventListener('mousedown', startLongPress);
-        penBtn.addEventListener('mouseup', endLongPress);
-        penBtn.addEventListener('touchstart', startLongPress);
-        penBtn.addEventListener('touchend', endLongPress);
-
-        document.querySelectorAll('.color-option').forEach(color => {
-            color.addEventListener('click', (e) => {
-                currentColor = e.target.dataset.color;
-                colorPalette.style.display = 'none';
-            });
-        });
-
-        function startLongPress(e) {
-            e.preventDefault();
-            longPressTimer = setTimeout(() => {
-                const rect = penBtn.getBoundingClientRect();
-                colorPalette.style.left = rect.left + 'px';
-                colorPalette.style.display = 'flex';
-            }, 500);
-        }
-
-        function endLongPress() {
-            clearTimeout(longPressTimer);
-            if(currentTool !== 'pen') {
-                currentTool = 'pen';
-                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-                penBtn.classList.add('active');
-            }
-        }
-
-        // Drawing functionality
-        canvas.addEventListener('mousedown', startDrawing);
-        canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseout', stopDrawing);
-        canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            const touch = e.touches[0];
-            startDrawing({ offsetX: touch.clientX, offsetY: touch.clientY - 50 });
-        });
-        canvas.addEventListener('touchmove', (e) => {
-            e.preventDefault();
-            const touch = e.touches[0];
-            draw({ offsetX: touch.clientX, offsetY: touch.clientY - 50 });
-        });
-        canvas.addEventListener('touchend', stopDrawing);
-
-        function startDrawing(e) {
-            if(currentTool === 'pen') {
-                isDrawing = true;
-                ctx.beginPath();
-                ctx.moveTo(e.offsetX, e.offsetY);
-            }
-        }
-
-        function draw(e) {
-            if(!isDrawing) return;
-            ctx.lineTo(e.offsetX, e.offsetY);
-            ctx.strokeStyle = currentColor;
-            ctx.lineWidth = 2;
-            ctx.lineCap = 'round';
-            ctx.stroke();
-        }
-
-        function stopDrawing() {
-            isDrawing = false;
-            ctx.beginPath();
-        }
-
-        // Text tool
-        canvas.addEventListener('click', addTextElement);
-        
-        function addTextElement(e) {
-            if(currentTool !== 'text') return;
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const canvas = document.getElementById('canvas');
+            const penTool = document.getElementById('pen-tool');
+            const textTool = document.getElementById('text-tool');
+            const selectTool = document.getElementById('select-tool');
+            const eraserTool = document.getElementById('eraser-tool');
+            const imageTool = document.getElementById('image-tool');
+            const saveTool = document.getElementById('save-tool');
             
-            const textarea = document.createElement('textarea');
-            textarea.style.position = 'absolute';
-            textarea.style.left = e.clientX + 'px';
-            textarea.style.top = (e.clientY - 50) + 'px';
-            textarea.style.background = 'transparent';
-            textarea.style.border = '1px dashed white';
-            textarea.style.color = 'white';
-            textarea.style.fontFamily = 'Indie Flower, cursive';
-            document.body.appendChild(textarea);
+            // State
+            let currentTool = 'pen';
+            let isDrawing = false;
+            let currentColor = '#ffffff';
+            let currentPath = null;
+            let pathPoints = [];
+            let selectedItem = null;
+            let contentItems = [];
+            let startX, startY;
+            let moveOffsetX, moveOffsetY;
+            let longPressTimeout = null;
+            let drawingId = 0;
             
-            textarea.addEventListener('blur', () => {
-                createTextElement(textarea.value, parseFloat(textarea.style.left), parseFloat(textarea.style.top));
-                document.body.removeChild(textarea);
-            });
-        }
-
-        function createTextElement(text, x, y) {
-            const colors = ['#2196F3', '#4CAF50', '#F44336', '#9C27B0', '#FFEB3B'];
-            const wrapper = document.createElement('div');
-            wrapper.className = 'text-element';
-            wrapper.style.left = x + 'px';
-            wrapper.style.top = y + 'px';
+            // Available colors
+            const colors = ['#ff0000', '#0000ff', '#ffff00', '#800080', '#00ff00'];
             
-            text.split(/(\*\*.*?\*\*|\*.*?\*)/g).forEach(part => {
-                if(!part) return;
-                const span = document.createElement('span');
+            // Create stars in the background
+            createStars();
+            
+            // Set up event listeners
+            setupEventListeners();
+            
+            function createStars() {
+                const numStars = 200;
+                for (let i = 0; i < numStars; i++) {
+                    const star = document.createElement('div');
+                    star.classList.add('star');
+                    star.style.left = `${Math.random() * 100}%`;
+                    star.style.top = `${Math.random() * 100}%`;
+                    star.style.opacity = (Math.random() * 0.7) + 0.3;
+                    canvas.appendChild(star);
+                }
+            }
+            
+            function setupEventListeners() {
+                // Tool selection
+                penTool.addEventListener('click', () => setActiveTool('pen'));
+                textTool.addEventListener('click', () => setActiveTool('text'));
+                selectTool.addEventListener('click', () => setActiveTool('select'));
+                eraserTool.addEventListener('click', () => setActiveTool('eraser'));
+                imageTool.addEventListener('click', handleImageTool);
+                saveTool.addEventListener('click', handleSavePDF);
                 
-                if(part.startsWith('**') && part.endsWith('**')) {
-                    span.textContent = part.slice(2, -2);
-                    span.style.fontFamily = 'Cedarville Cursive, cursive';
-                    span.style.fontSize = '32px';
-                    span.style.display = 'block';
-                    span.style.textAlign = 'center';
-                    span.style.width = '100%';
-                } else if(part.startsWith('*') && part.endsWith('*')) {
-                    span.textContent = part.slice(1, -1);
-                    span.style.fontSize = '24px';
+                // Canvas events
+                canvas.addEventListener('mousedown', handleCanvasMouseDown);
+                canvas.addEventListener('mousemove', handleCanvasMouseMove);
+                canvas.addEventListener('mouseup', handleCanvasMouseUp);
+                canvas.addEventListener('mouseleave', handleCanvasMouseUp);
+            }
+            
+            function setActiveTool(tool) {
+                currentTool = tool;
+                
+                // Update UI
+                document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+                document.getElementById(`${tool}-tool`).classList.add('active');
+                
+                // Reset state
+                clearColorPicker();
+                removeTextInput();
+                
+                // Deselect any selected item
+                if (selectedItem !== null) {
+                    document.getElementById(`content-${selectedItem}`).classList.remove('selected');
+                    selectedItem = null;
+                }
+                
+                // Change cursor based on tool
+                switch(tool) {
+                    case 'pen':
+                        canvas.style.cursor = 'crosshair';
+                        break;
+                    case 'text':
+                        canvas.style.cursor = 'text';
+                        break;
+                    case 'select':
+                        canvas.style.cursor = 'default';
+                        break;
+                    case 'eraser':
+                        canvas.style.cursor = 'not-allowed';
+                        break;
+                    default:
+                        canvas.style.cursor = 'default';
+                }
+            }
+            
+            function handleCanvasMouseDown(e) {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                startX = x;
+                startY = y;
+                
+                switch(currentTool) {
+                    case 'pen':
+                        isDrawing = true;
+                        pathPoints = [{x, y}];
+                        startDrawing(x, y);
+                        
+                        // Set up long press for color picker
+                        longPressTimeout = setTimeout(() => {
+                            showColorPicker(x, y);
+                        }, 500);
+                        break;
+                        
+                    case 'text':
+                        createTextInput(x, y);
+                        break;
+                        
+                    case 'select':
+                        // Check if clicked on any content item
+                        const clickedItem = findClickedItem(x, y);
+                        if (clickedItem !== null) {
+                            if (selectedItem !== null) {
+                                document.getElementById(`content-${selectedItem}`).classList.remove('selected');
+                            }
+                            
+                            selectedItem = clickedItem;
+                            document.getElementById(`content-${selectedItem}`).classList.add('selected');
+                            
+                            // Calculate offset for moving
+                            const item = contentItems[selectedItem];
+                            moveOffsetX = x - item.x;
+                            moveOffsetY = y - item.y;
+                        } else {
+                            // Clicked on empty space, deselect
+                            if (selectedItem !== null) {
+                                document.getElementById(`content-${selectedItem}`).classList.remove('selected');
+                                selectedItem = null;
+                            }
+                        }
+                        break;
+                        
+                    case 'eraser':
+                        if (selectedItem !== null) {
+                            // Remove the selected item
+                            document.getElementById(`content-${selectedItem}`).remove();
+                            contentItems.splice(selectedItem, 1);
+                            selectedItem = null;
+                            
+                            // Update IDs of remaining elements
+                            updateContentItemIds();
+                        }
+                        break;
+                }
+            }
+            
+            function handleCanvasMouseMove(e) {
+                if (!isDrawing && selectedItem === null) return;
+                
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                if (isDrawing && currentTool === 'pen') {
+                    // Add point to current path
+                    pathPoints.push({x, y});
+                    updateDrawingPath();
+                } else if (selectedItem !== null && currentTool === 'select') {
+                    // Move the selected item
+                    const newX = x - moveOffsetX;
+                    const newY = y - moveOffsetY;
+                    
+                    const element = document.getElementById(`content-${selectedItem}`);
+                    element.style.left = `${newX}px`;
+                    element.style.top = `${newY}px`;
+                    
+                    // Update item position in state
+                    contentItems[selectedItem].x = newX;
+                    contentItems[selectedItem].y = newY;
+                }
+            }
+            
+            function handleCanvasMouseUp() {
+                if (isDrawing && currentTool === 'pen') {
+                    isDrawing = false;
+                    finalizeDrawing();
+                }
+                
+                // Clear long press timeout
+                if (longPressTimeout) {
+                    clearTimeout(longPressTimeout);
+                    longPressTimeout = null;
+                }
+            }
+            
+            function startDrawing(x, y) {
+                currentPath = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                currentPath.classList.add('drawing-path');
+                currentPath.setAttribute('width', '100%');
+                currentPath.setAttribute('height', '100%');
+                currentPath.style.position = 'absolute';
+                currentPath.style.left = '0';
+                currentPath.style.top = '0';
+                currentPath.style.pointerEvents = 'none';
+                
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute('stroke', currentColor);
+                path.setAttribute('stroke-width', '2');
+                path.setAttribute('fill', 'none');
+                path.setAttribute('d', `M ${x} ${y}`);
+                
+                currentPath.appendChild(path);
+                canvas.appendChild(currentPath);
+            }
+            
+            function updateDrawingPath() {
+                if (!currentPath) return;
+                
+                const path = currentPath.querySelector('path');
+                let d = `M ${pathPoints[0].x} ${pathPoints[0].y}`;
+                
+                for (let i = 1; i < pathPoints.length; i++) {
+                    d += ` L ${pathPoints[i].x} ${pathPoints[i].y}`;
+                }
+                
+                path.setAttribute('d', d);
+            }
+            
+            function finalizeDrawing() {
+                if (pathPoints.length < 2) {
+                    // Remove single-point paths
+                    if (currentPath) currentPath.remove();
+                    currentPath = null;
+                    return;
+                }
+                
+                // Add to content items
+                const id = contentItems.length;
+                contentItems.push({
+                    type: 'drawing',
+                    id: `drawing-${drawingId++}`,
+                    path: pathPoints,
+                    color: currentColor,
+                    x: Math.min(...pathPoints.map(p => p.x)),
+                    y: Math.min(...pathPoints.map(p => p.y))
+                });
+                
+                // Set ID for the path for later selection
+                currentPath.id = `content-${id}`;
+                currentPath = null;
+            }
+            
+            function showColorPicker(x, y) {
+                clearColorPicker();
+                
+                const colorPicker = document.createElement('div');
+                colorPicker.classList.add('color-picker');
+                colorPicker.style.left = `${x}px`;
+                colorPicker.style.top = `${y}px`;
+                
+                colors.forEach(color => {
+                    const option = document.createElement('div');
+                    option.classList.add('color-option');
+                    option.style.backgroundColor = color;
+                    option.addEventListener('click', () => {
+                        currentColor = color;
+                        clearColorPicker();
+                    });
+                    colorPicker.appendChild(option);
+                });
+                
+                canvas.appendChild(colorPicker);
+            }
+            
+            function clearColorPicker() {
+                const existingPicker = document.querySelector('.color-picker');
+                if (existingPicker) existingPicker.remove();
+            }
+            
+            function createTextInput(x, y) {
+                removeTextInput();
+                
+                const textInput = document.createElement('input');
+                textInput.type = 'text';
+                textInput.classList.add('text-input');
+                textInput.style.left = `${x}px`;
+                textInput.style.top = `${y}px`;
+                textInput.placeholder = 'Type text here... Use **[text]** for main heading or *[text]* for side heading';
+                
+                textInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        const text = textInput.value.trim();
+                        if (text) {
+                            addTextContent(text, x, y);
+                        }
+                        removeTextInput();
+                    } else if (e.key === 'Escape') {
+                        removeTextInput();
+                    }
+                });
+                
+                canvas.appendChild(textInput);
+                textInput.focus();
+            }
+            
+            function removeTextInput() {
+                const existingInput = document.querySelector('.text-input');
+                if (existingInput) existingInput.remove();
+            }
+            
+            function addTextContent(text, x, y) {
+                const id = contentItems.length;
+                const contentItem = document.createElement('div');
+                contentItem.classList.add('content-item');
+                contentItem.id = `content-${id}`;
+                contentItem.style.left = `${x}px`;
+                contentItem.style.top = `${y}px`;
+                
+                // Process formatting
+                let className, formattedText, color;
+                
+                if (text.match(/\*\*\[(.*?)\]\*\*/)) {
+                    // Main heading
+                    className = 'main-heading';
+                    formattedText = text.match(/\*\*\[(.*?)\]\*\*/)[1];
+                } else if (text.match(/\*\[(.*?)\]\*/)) {
+                    // Side heading
+                    className = 'side-heading';
+                    formattedText = text.match(/\*\[(.*?)\]\*/)[1];
                 } else {
-                    span.textContent = part;
+                    // Normal text
+                    className = 'normal-text';
+                    formattedText = text;
+                    color = colors[Math.floor(Math.random() * colors.length)];
                 }
                 
-                span.style.color = colors[Math.floor(Math.random() * colors.length)];
-                wrapper.appendChild(span);
-            });
-            
-            document.querySelector('.canvas-container').appendChild(wrapper);
-            elements.push(wrapper);
-            makeDraggable(wrapper);
-        }
-
-        // Select and move functionality
-        function makeDraggable(element) {
-            let isDragging = false;
-            let startX, startY, initialX, initialY;
-            
-            element.addEventListener('mousedown', startDrag);
-            element.addEventListener('touchstart', startDrag);
-
-            function startDrag(e) {
-                if(currentTool !== 'select') return;
-                e.preventDefault();
-                isDragging = true;
-                selectedElement = element;
-                document.querySelectorAll('.text-element').forEach(el => el.classList.remove('selected'));
-                element.classList.add('selected');
+                contentItem.classList.add(className);
+                contentItem.textContent = formattedText;
                 
-                if(e.type === 'touchstart') {
-                    startX = e.touches[0].clientX;
-                    startY = e.touches[0].clientY;
-                } else {
-                    startX = e.clientX;
-                    startY = e.clientY;
+                if (color) {
+                    contentItem.style.color = color;
                 }
                 
-                initialX = element.offsetLeft;
-                initialY = element.offsetTop;
-
-                document.addEventListener('mousemove', drag);
-                document.addEventListener('mouseup', stopDrag);
-                document.addEventListener('touchmove', drag);
-                document.addEventListener('touchend', stopDrag);
+                canvas.appendChild(contentItem);
+                
+                // Add to content items
+                contentItems.push({
+                    type: 'text',
+                    content: text,
+                    formattedText,
+                    class: className,
+                    color,
+                    x,
+                    y
+                });
             }
-
-            function drag(e) {
-                if(!isDragging) return;
-                let currentX, currentY;
-                
-                if(e.type === 'touchmove') {
-                    currentX = e.touches[0].clientX;
-                    currentY = e.touches[0].clientY;
-                } else {
-                    currentX = e.clientX;
-                    currentY = e.clientY;
+            
+            function findClickedItem(x, y) {
+                for (let i = contentItems.length - 1; i >= 0; i--) {
+                    const item = contentItems[i];
+                    const element = document.getElementById(`content-${i}`);
+                    
+                    if (!element) continue;
+                    
+                    const rect = element.getBoundingClientRect();
+                    const canvasRect = canvas.getBoundingClientRect();
+                    
+                    // Adjust coordinates relative to canvas
+                    const adjustedRect = {
+                        left: rect.left - canvasRect.left,
+                        top: rect.top - canvasRect.top,
+                        right: rect.right - canvasRect.left,
+                        bottom: rect.bottom - canvasRect.top
+                    };
+                    
+                    if (x >= adjustedRect.left && x <= adjustedRect.right && 
+                        y >= adjustedRect.top && y <= adjustedRect.bottom) {
+                        return i;
+                    }
                 }
                 
-                const dx = currentX - startX;
-                const dy = currentY - startY;
-                
-                element.style.left = initialX + dx + 'px';
-                element.style.top = initialY + dy + 'px';
+                return null;
             }
-
-            function stopDrag() {
-                isDragging = false;
-                document.removeEventListener('mousemove', drag);
-                document.removeEventListener('touchmove', drag);
+            
+            function updateContentItemIds() {
+                contentItems.forEach((item, index) => {
+                    const element = document.getElementById(`content-${index}`);
+                    if (element) {
+                        element.id = `content-${index}`;
+                    }
+                });
             }
-        }
-
-        // Erase functionality
-        document.getElementById('eraseBtn').addEventListener('click', () => {
-            currentTool = 'erase';
-            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-            eraseBtn.classList.add('active');
-        });
-
-        canvas.addEventListener('mousedown', erase);
-        canvas.addEventListener('touchstart', erase);
-
-        function erase(e) {
-            if(currentTool !== 'erase') return;
-            const x = e.clientX || e.touches[0].clientX;
-            const y = (e.clientY || e.touches[0].clientY) - 50;
             
-            // Erase canvas content
-            ctx.clearRect(x - 15, y - 15, 30, 30);
+            function handleImageTool() {
+                alert('Image insertion would be implemented here in a real application.');
+                // In a real implementation, this would open a file picker
+                // and handle image uploads
+            }
             
-            // Erase text elements
-            elements.forEach((element, index) => {
-                const rect = element.getBoundingClientRect();
-                if(x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
-                    element.remove();
-                    elements.splice(index, 1);
-                }
-            });
-        }
-
-        // Save as PDF
-        document.getElementById('saveBtn').addEventListener('click', () => {
-            html2canvas(document.querySelector('.canvas-container')).then(canvas => {
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const imgData = canvas.toDataURL('image/png');
-                const pageWidth = pdf.internal.pageSize.getWidth();
-                const pageHeight = pdf.internal.pageSize.getHeight();
-                const imgWidth = pageWidth;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-                pdf.save('annotation.pdf');
-            });
+            function handleSavePDF() {
+                alert('Saving as PDF would be implemented here in a real application.');
+                // In a real implementation, this would convert the canvas
+                // and all content to a PDF file and prompt a download
+            }
         });
     </script>
 </body>
