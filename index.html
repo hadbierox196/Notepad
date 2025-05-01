@@ -164,6 +164,15 @@
             display: none;
             z-index: 300;
         }
+
+        .drawing-svg {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -228,6 +237,7 @@
             let textElements = [];
             let imageElements = [];
             let strokeElements = [];
+            let drawingSvg = null;
 
             function generateDots() {
                 const spacing = 50;
@@ -250,7 +260,6 @@
                     tool.classList.remove('active');
                 });
                 document.getElementById(toolId).classList.add('active');
-                
                 currentTool = toolId.replace('-tool', '');
                 
                 if (selectedElement) {
@@ -305,36 +314,43 @@
                 if (currentTool === 'pen') {
                     isDrawing = true;
                     const rect = canvas.getBoundingClientRect();
-                    const x = e.clientX - rect.left + canvasContainer.scrollLeft;
-                    const y = e.clientY - rect.top + canvasContainer.scrollTop;
+                    const scrollX = canvasContainer.scrollLeft;
+                    const scrollY = canvasContainer.scrollTop;
                     
-                    currentStroke = [];
-                    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                    svg.style.position = 'absolute';
-                    svg.style.left = '0';
-                    svg.style.top = '0';
-                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                    path.setAttribute('stroke', currentColor);
-                    path.setAttribute('stroke-width', '2');
-                    path.setAttribute('fill', 'none');
-                    svg.appendChild(path);
-                    canvas.appendChild(svg);
+                    const x = e.clientX - rect.left + scrollX;
+                    const y = e.clientY - rect.top + scrollY;
                     
-                    currentPath = { svg, path };
-                    currentStroke.push({ x, y });
-                    updatePath();
+                    if (!drawingSvg) {
+                        drawingSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                        drawingSvg.classList.add('drawing-svg');
+                        canvas.appendChild(drawingSvg);
+                    }
+                    
+                    currentPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    currentPath.setAttribute('stroke', currentColor);
+                    currentPath.setAttribute('stroke-width', '2');
+                    currentPath.setAttribute('fill', 'none');
+                    currentPath.setAttribute('d', `M ${x} ${y}`);
+                    drawingSvg.appendChild(currentPath);
+                    
+                    currentStroke = [{x, y}];
                 }
             }
 
             function draw(e) {
-                if (!isDrawing) return;
+                if (!isDrawing || !currentPath) return;
                 
                 const rect = canvas.getBoundingClientRect();
-                const x = e.clientX - rect.left + canvasContainer.scrollLeft;
-                const y = e.clientY - rect.top + canvasContainer.scrollTop;
+                const scrollX = canvasContainer.scrollLeft;
+                const scrollY = canvasContainer.scrollTop;
                 
-                currentStroke.push({ x, y });
-                updatePath();
+                const x = e.clientX - rect.left + scrollX;
+                const y = e.clientY - rect.top + scrollY;
+                
+                currentStroke.push({x, y});
+                const d = currentPath.getAttribute('d') + ` L ${x} ${y}`;
+                currentPath.setAttribute('d', d);
+                
                 expandCanvasIfNeeded(x, y);
             }
 
@@ -344,12 +360,6 @@
                     strokeElements.push(currentStroke);
                     currentPath = null;
                 }
-            }
-
-            function updatePath() {
-                if (!currentPath || currentStroke.length < 1) return;
-                const d = currentStroke.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-                currentPath.path.setAttribute('d', d);
             }
 
             function expandCanvasIfNeeded(x, y) {
@@ -368,23 +378,7 @@
                 }
             }
 
-            function generateMoreDots(startX, startY) {
-                const spacing = 50;
-                const currentWidth = canvas.offsetWidth;
-                const currentHeight = canvas.offsetHeight;
-                
-                for (let x = startX; x < currentWidth; x += spacing) {
-                    for (let y = startY; y < currentHeight; y += spacing) {
-                        const dot = document.createElement('div');
-                        dot.className = 'dot';
-                        dot.style.left = (x + Math.random() * 10 - 5) + 'px';
-                        dot.style.top = (y + Math.random() * 10 - 5) + 'px';
-                        canvas.appendChild(dot);
-                    }
-                }
-            }
-
-            function selectElement(e) {
+            function handleSelection(e) {
                 if (currentTool !== 'select') return;
                 const element = e.target.closest('.text-box, img');
                 
@@ -410,16 +404,17 @@
             }
 
             function moveElement(e) {
-                if (isDrawing) return;
-                if (selectedElement && currentTool === 'select' && e.buttons === 1) {
-                    const rect = canvas.getBoundingClientRect();
-                    const x = e.clientX - rect.left + canvasContainer.scrollLeft - offset.x;
-                    const y = e.clientY - rect.top + canvasContainer.scrollTop - offset.y;
-                    
-                    selectedElement.style.left = Math.max(0, x) + 'px';
-                    selectedElement.style.top = Math.max(0, y) + 'px';
-                    expandCanvasIfNeeded(x + selectedElement.offsetWidth, y + selectedElement.offsetHeight);
-                }
+                if (!selectedElement || currentTool !== 'select') return;
+                
+                const rect = canvas.getBoundingClientRect();
+                const scrollX = canvasContainer.scrollLeft;
+                const scrollY = canvasContainer.scrollTop;
+                
+                const x = e.clientX - rect.left + scrollX - offset.x;
+                const y = e.clientY - rect.top + scrollY - offset.y;
+                
+                selectedElement.style.left = `${Math.max(0, x)}px`;
+                selectedElement.style.top = `${Math.max(0, y)}px`;
             }
 
             function handleImageUpload(e) {
@@ -469,8 +464,16 @@
                     tool.addEventListener('click', () => setActiveTool(tool.id));
                 });
                 
-                canvas.addEventListener('mousedown', startDrawing);
-                canvas.addEventListener('mousemove', draw);
+                canvas.addEventListener('mousedown', (e) => {
+                    if (currentTool === 'pen') startDrawing(e);
+                    if (currentTool === 'select') handleSelection(e);
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    if (isDrawing) draw(e);
+                    if (selectedElement && currentTool === 'select') moveElement(e);
+                });
+                
                 window.addEventListener('mouseup', stopDrawing);
                 
                 canvas.addEventListener('click', function(e) {
@@ -482,9 +485,6 @@
                     }
                 });
                 
-                canvas.addEventListener('mousedown', selectElement);
-                document.addEventListener('mousemove', moveElement);
-                
                 document.getElementById('image-upload').addEventListener('change', handleImageUpload);
                 document.getElementById('save-pdf').addEventListener('click', saveToPDF);
                 
@@ -494,6 +494,8 @@
                         colorPalette.style.display = 'none';
                     });
                 });
+                
+                canvas.addEventListener('contextmenu', (e) => e.preventDefault());
                 
                 canvasContainer.scrollTo(
                     (canvas.offsetWidth - canvasContainer.offsetWidth) / 2,
