@@ -1,509 +1,391 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Infinite Canvas Note-Taking App</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <title>Annotation App</title>
     <link href="https://fonts.googleapis.com/css2?family=Cedarville+Cursive&family=Indie+Flower&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body {
+        * {
             margin: 0;
             padding: 0;
-            overflow: hidden;
-            font-family: Arial, sans-serif;
+            box-sizing: border-box;
         }
 
-        #app-container {
-            position: relative;
-            width: 100vw;
+        body {
+            background: #000;
             height: 100vh;
+            overflow: hidden;
+            touch-action: none;
         }
 
-        #toolbar {
+        .toolbar {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            background-color: #333;
-            color: white;
-            display: flex;
-            align-items: center;
-            padding: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-            z-index: 100;
-        }
-
-        .tool {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            margin: 0 10px;
-            cursor: pointer;
-            border-radius: 5px;
-            transition: background-color 0.3s;
-        }
-
-        .tool:hover {
-            background-color: #555;
-        }
-
-        .tool.active {
-            background-color: #007bff;
-        }
-
-        .tool i {
-            font-size: 20px;
-        }
-
-        #canvas-container {
-            position: absolute;
-            top: 60px;
-            left: 0;
             right: 0;
-            bottom: 0;
-            background-color: black;
-            overflow: auto;
+            background: #333;
+            padding: 10px;
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
         }
 
-        #canvas {
+        .tool-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px 15px;
             position: relative;
-            width: auto;
-            height: auto;
-            min-width: 100%;
-            min-height: 100%;
-            transition: all 0.3s ease;
+        }
+
+        .canvas-container {
+            position: relative;
+            height: 100vh;
+            margin-top: 50px;
+        }
+
+        #mainCanvas {
+            position: absolute;
+            background: transparent;
+            touch-action: none;
         }
 
         .dot {
             position: absolute;
+            background: white;
             width: 2px;
             height: 2px;
-            background-color: white;
             border-radius: 50%;
         }
 
-        .text-box {
+        .text-element {
             position: absolute;
-            min-width: 100px;
-            min-height: 30px;
-            padding: 5px;
-            border: 1px solid transparent;
-            background-color: transparent;
             color: white;
+            font-family: 'Indie Flower', cursive;
             cursor: move;
-            font-family: 'Indie Flower', cursive;
-            white-space: pre-wrap;
-            overflow: hidden;
+            max-width: 300px;
+            user-select: none;
+            touch-action: none;
         }
 
-        .text-box.selected {
-            border: 2px dotted #00ffff;
-        }
-
-        .central-heading {
-            font-family: 'Cedarville Cursive', cursive;
-            font-size: 36px;
-            text-align: center;
-            width: 100%;
-            display: block;
-            margin: 10px 0;
-        }
-
-        .side-heading {
-            font-family: 'Indie Flower', cursive;
-            font-size: 24px;
-            font-weight: bold;
-            margin: 5px 0;
+        .selected {
+            outline: 2px dashed white !important;
         }
 
         .color-palette {
             position: absolute;
             display: none;
-            flex-direction: row;
-            background-color: #444;
+            background: #444;
+            padding: 10px;
             border-radius: 5px;
-            padding: 5px;
-            z-index: 200;
+            bottom: 60px;
         }
 
         .color-option {
-            width: 25px;
-            height: 25px;
-            margin: 5px;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
+            margin: 5px;
             cursor: pointer;
-        }
-
-        .resize-handle {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background-color: #00ffff;
-            bottom: 0;
-            right: 0;
-            cursor: nwse-resize;
-            display: none;
-        }
-
-        .text-box.selected .resize-handle {
-            display: block;
-        }
-
-        #pdf-progress {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 20px;
-            border-radius: 5px;
-            display: none;
-            z-index: 300;
-        }
-
-        .drawing-svg {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
+            border: 2px solid white;
         }
     </style>
 </head>
 <body>
-    <div id="app-container">
-        <div id="toolbar">
-            <div class="tool active" id="pen-tool" title="Pen Tool">
-                <i class="fas fa-pen"></i>
-            </div>
-            <div class="tool" id="text-tool" title="Text Tool">
-                <i class="fas fa-font"></i>
-            </div>
-            <div class="tool" id="select-tool" title="Select Tool">
-                <i class="fas fa-mouse-pointer"></i>
-            </div>
-            <div class="tool" id="erase-tool" title="Erase Tool">
-                <i class="fas fa-eraser"></i>
-            </div>
-            <div class="tool" id="image-tool" title="Insert Image">
-                <i class="fas fa-image"></i>
-                <input type="file" id="image-upload" style="display: none;" accept="image/*">
-            </div>
-            <div class="tool" id="save-pdf" title="Save as PDF">
-                <i class="fas fa-file-pdf"></i>
-            </div>
+    <div class="toolbar">
+        <button class="tool-btn" id="penBtn" title="Pen"><i class="fas fa-pen"></i></button>
+        <button class="tool-btn" id="textBtn" title="Text"><i class="fas fa-font"></i></button>
+        <button class="tool-btn" id="selectBtn" title="Select"><i class="fas fa-vector-square"></i></button>
+        <button class="tool-btn" id="eraseBtn" title="Erase"><i class="fas fa-eraser"></i></button>
+        <button class="tool-btn" id="saveBtn" title="Save PDF"><i class="fas fa-file-pdf"></i></button>
+        <div class="color-palette" id="colorPalette">
+            <div class="color-option" style="background: red" data-color="red"></div>
+            <div class="color-option" style="background: blue" data-color="blue"></div>
+            <div class="color-option" style="background: yellow" data-color="yellow"></div>
+            <div class="color-option" style="background: purple" data-color="purple"></div>
+            <div class="color-option" style="background: green" data-color="green"></div>
         </div>
-
-        <div id="canvas-container">
-            <div id="canvas"></div>
-        </div>
-
-        <div id="color-palette" class="color-palette">
-            <div class="color-option" style="background-color: red;" data-color="red"></div>
-            <div class="color-option" style="background-color: blue;" data-color="blue"></div>
-            <div class="color-option" style="background-color: yellow;" data-color="yellow"></div>
-            <div class="color-option" style="background-color: purple;" data-color="purple"></div>
-            <div class="color-option" style="background-color: green;" data-color="green"></div>
-        </div>
-
-        <div id="pdf-progress">Generating PDF...</div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <div class="canvas-container">
+        <canvas id="mainCanvas"></canvas>
+    </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/1.5.3/jspdf.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const canvas = document.getElementById('canvas');
-            const canvasContainer = document.getElementById('canvas-container');
-            const toolbar = document.getElementById('toolbar');
-            const colorPalette = document.getElementById('color-palette');
-            const pdfProgress = document.getElementById('pdf-progress');
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let currentTool = 'pen';
+        let currentColor = 'white';
+        let elements = [];
+        let selectedElement = null;
+        let startX, startY;
+        let longPressTimer;
+
+        // Initialize canvas
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight - 50;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Create background dots
+        function createDots() {
+            const container = document.body;
+            for(let i = 0; i < 200; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'dot';
+                dot.style.left = Math.random() * window.innerWidth + 'px';
+                dot.style.top = (Math.random() * window.innerHeight + 50) + 'px';
+                container.appendChild(dot);
+            }
+        }
+        createDots();
+
+        // Tools functionality
+        document.querySelectorAll('.tool-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                if(this.id === 'penBtn') return;
+                currentTool = this.id.replace('Btn', '');
+                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Pen tool with color selection
+        const penBtn = document.getElementById('penBtn');
+        const colorPalette = document.getElementById('colorPalette');
+
+        penBtn.addEventListener('mousedown', startLongPress);
+        penBtn.addEventListener('mouseup', endLongPress);
+        penBtn.addEventListener('touchstart', startLongPress);
+        penBtn.addEventListener('touchend', endLongPress);
+
+        document.querySelectorAll('.color-option').forEach(color => {
+            color.addEventListener('click', (e) => {
+                currentColor = e.target.dataset.color;
+                colorPalette.style.display = 'none';
+            });
+        });
+
+        function startLongPress(e) {
+            e.preventDefault();
+            longPressTimer = setTimeout(() => {
+                const rect = penBtn.getBoundingClientRect();
+                colorPalette.style.left = rect.left + 'px';
+                colorPalette.style.display = 'flex';
+            }, 500);
+        }
+
+        function endLongPress() {
+            clearTimeout(longPressTimer);
+            if(currentTool !== 'pen') {
+                currentTool = 'pen';
+                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                penBtn.classList.add('active');
+            }
+        }
+
+        // Drawing functionality
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            startDrawing({ offsetX: touch.clientX, offsetY: touch.clientY - 50 });
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            draw({ offsetX: touch.clientX, offsetY: touch.clientY - 50 });
+        });
+        canvas.addEventListener('touchend', stopDrawing);
+
+        function startDrawing(e) {
+            if(currentTool === 'pen') {
+                isDrawing = true;
+                ctx.beginPath();
+                ctx.moveTo(e.offsetX, e.offsetY);
+            }
+        }
+
+        function draw(e) {
+            if(!isDrawing) return;
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+            ctx.beginPath();
+        }
+
+        // Text tool
+        canvas.addEventListener('click', addTextElement);
+        
+        function addTextElement(e) {
+            if(currentTool !== 'text') return;
             
-            let currentTool = 'pen';
-            let isDrawing = false;
-            let currentStroke = [];
-            let currentPath = null;
-            let currentColor = 'white';
-            let selectedElement = null;
-            let offset = { x: 0, y: 0 };
-            let isResizing = false;
-            let originalDimensions = { width: 0, height: 0 };
-            let textElements = [];
-            let imageElements = [];
-            let strokeElements = [];
-            let drawingSvg = null;
+            const textarea = document.createElement('textarea');
+            textarea.style.position = 'absolute';
+            textarea.style.left = e.clientX + 'px';
+            textarea.style.top = (e.clientY - 50) + 'px';
+            textarea.style.background = 'transparent';
+            textarea.style.border = '1px dashed white';
+            textarea.style.color = 'white';
+            textarea.style.fontFamily = 'Indie Flower, cursive';
+            document.body.appendChild(textarea);
+            
+            textarea.addEventListener('blur', () => {
+                createTextElement(textarea.value, parseFloat(textarea.style.left), parseFloat(textarea.style.top));
+                document.body.removeChild(textarea);
+            });
+        }
 
-            function generateDots() {
-                const spacing = 50;
-                const viewportWidth = canvasContainer.offsetWidth;
-                const viewportHeight = canvasContainer.offsetHeight;
+        function createTextElement(text, x, y) {
+            const colors = ['#2196F3', '#4CAF50', '#F44336', '#9C27B0', '#FFEB3B'];
+            const wrapper = document.createElement('div');
+            wrapper.className = 'text-element';
+            wrapper.style.left = x + 'px';
+            wrapper.style.top = y + 'px';
+            
+            text.split(/(\*\*.*?\*\*|\*.*?\*)/g).forEach(part => {
+                if(!part) return;
+                const span = document.createElement('span');
                 
-                for (let x = 0; x < viewportWidth; x += spacing) {
-                    for (let y = 0; y < viewportHeight; y += spacing) {
-                        const dot = document.createElement('div');
-                        dot.className = 'dot';
-                        dot.style.left = (x + Math.random() * 10 - 5) + 'px';
-                        dot.style.top = (y + Math.random() * 10 - 5) + 'px';
-                        canvas.appendChild(dot);
-                    }
+                if(part.startsWith('**') && part.endsWith('**')) {
+                    span.textContent = part.slice(2, -2);
+                    span.style.fontFamily = 'Cedarville Cursive, cursive';
+                    span.style.fontSize = '32px';
+                    span.style.display = 'block';
+                    span.style.textAlign = 'center';
+                    span.style.width = '100%';
+                } else if(part.startsWith('*') && part.endsWith('*')) {
+                    span.textContent = part.slice(1, -1);
+                    span.style.fontSize = '24px';
+                } else {
+                    span.textContent = part;
                 }
-            }
-
-            function setActiveTool(toolId) {
-                document.querySelectorAll('.tool').forEach(tool => {
-                    tool.classList.remove('active');
-                });
-                document.getElementById(toolId).classList.add('active');
-                currentTool = toolId.replace('-tool', '');
                 
-                if (selectedElement) {
-                    selectedElement.classList.remove('selected');
-                    selectedElement = null;
+                span.style.color = colors[Math.floor(Math.random() * colors.length)];
+                wrapper.appendChild(span);
+            });
+            
+            document.querySelector('.canvas-container').appendChild(wrapper);
+            elements.push(wrapper);
+            makeDraggable(wrapper);
+        }
+
+        // Select and move functionality
+        function makeDraggable(element) {
+            let isDragging = false;
+            let startX, startY, initialX, initialY;
+            
+            element.addEventListener('mousedown', startDrag);
+            element.addEventListener('touchstart', startDrag);
+
+            function startDrag(e) {
+                if(currentTool !== 'select') return;
+                e.preventDefault();
+                isDragging = true;
+                selectedElement = element;
+                document.querySelectorAll('.text-element').forEach(el => el.classList.remove('selected'));
+                element.classList.add('selected');
+                
+                if(e.type === 'touchstart') {
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
+                } else {
+                    startX = e.clientX;
+                    startY = e.clientY;
                 }
+                
+                initialX = element.offsetLeft;
+                initialY = element.offsetTop;
+
+                document.addEventListener('mousemove', drag);
+                document.addEventListener('mouseup', stopDrag);
+                document.addEventListener('touchmove', drag);
+                document.addEventListener('touchend', stopDrag);
             }
 
-            function formatText(text) {
-                const centralHeadingRegex = /\*\*\[(.*?)\]\*\*/g;
-                const sideHeadingRegex = /\*\[(.*?)\]\*/g;
-                let formattedText = text
-                    .replace(centralHeadingRegex, '<span class="central-heading">$1</span>')
-                    .replace(sideHeadingRegex, '<span class="side-heading">$1</span>');
+            function drag(e) {
+                if(!isDragging) return;
+                let currentX, currentY;
                 
-                const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEEAD'];
-                return formattedText.split(/(<span class=".*?">.*?<\/span>)/g)
-                    .map(part => {
-                        if (!part.match(/^<span/)) {
-                            return `<span style="color: ${colors[Math.floor(Math.random() * colors.length)]}">${part}</span>`;
-                        }
-                        return part;
-                    })
-                    .join('');
-            }
-
-            function createTextBox(x, y) {
-                const textBox = document.createElement('div');
-                textBox.className = 'text-box';
-                textBox.style.left = x + 'px';
-                textBox.style.top = y + 'px';
-                
-                const resizeHandle = document.createElement('div');
-                resizeHandle.className = 'resize-handle';
-                textBox.appendChild(resizeHandle);
-                
-                textBox.contentEditable = 'true';
-                textBox.addEventListener('blur', function() {
-                    this.innerHTML = formatText(this.innerText);
-                    if (!this.querySelector('.resize-handle')) {
-                        this.appendChild(resizeHandle.cloneNode(true));
-                    }
-                });
-                
-                canvas.appendChild(textBox);
-                textElements.push(textBox);
-                textBox.focus();
-                return textBox;
-            }
-
-            function startDrawing(e) {
-                if (currentTool === 'pen') {
-                    isDrawing = true;
-                    const rect = canvas.getBoundingClientRect();
-                    const scrollX = canvasContainer.scrollLeft;
-                    const scrollY = canvasContainer.scrollTop;
-                    
-                    const x = e.clientX - rect.left + scrollX;
-                    const y = e.clientY - rect.top + scrollY;
-                    
-                    if (!drawingSvg) {
-                        drawingSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                        drawingSvg.classList.add('drawing-svg');
-                        canvas.appendChild(drawingSvg);
-                    }
-                    
-                    currentPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                    currentPath.setAttribute('stroke', currentColor);
-                    currentPath.setAttribute('stroke-width', '2');
-                    currentPath.setAttribute('fill', 'none');
-                    currentPath.setAttribute('d', `M ${x} ${y}`);
-                    drawingSvg.appendChild(currentPath);
-                    
-                    currentStroke = [{x, y}];
+                if(e.type === 'touchmove') {
+                    currentX = e.touches[0].clientX;
+                    currentY = e.touches[0].clientY;
+                } else {
+                    currentX = e.clientX;
+                    currentY = e.clientY;
                 }
+                
+                const dx = currentX - startX;
+                const dy = currentY - startY;
+                
+                element.style.left = initialX + dx + 'px';
+                element.style.top = initialY + dy + 'px';
             }
 
-            function draw(e) {
-                if (!isDrawing || !currentPath) return;
-                
-                const rect = canvas.getBoundingClientRect();
-                const scrollX = canvasContainer.scrollLeft;
-                const scrollY = canvasContainer.scrollTop;
-                
-                const x = e.clientX - rect.left + scrollX;
-                const y = e.clientY - rect.top + scrollY;
-                
-                currentStroke.push({x, y});
-                const d = currentPath.getAttribute('d') + ` L ${x} ${y}`;
-                currentPath.setAttribute('d', d);
-                
-                expandCanvasIfNeeded(x, y);
+            function stopDrag() {
+                isDragging = false;
+                document.removeEventListener('mousemove', drag);
+                document.removeEventListener('touchmove', drag);
             }
+        }
 
-            function stopDrawing() {
-                if (isDrawing) {
-                    isDrawing = false;
-                    strokeElements.push(currentStroke);
-                    currentPath = null;
+        // Erase functionality
+        document.getElementById('eraseBtn').addEventListener('click', () => {
+            currentTool = 'erase';
+            document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+            eraseBtn.classList.add('active');
+        });
+
+        canvas.addEventListener('mousedown', erase);
+        canvas.addEventListener('touchstart', erase);
+
+        function erase(e) {
+            if(currentTool !== 'erase') return;
+            const x = e.clientX || e.touches[0].clientX;
+            const y = (e.clientY || e.touches[0].clientY) - 50;
+            
+            // Erase canvas content
+            ctx.clearRect(x - 15, y - 15, 30, 30);
+            
+            // Erase text elements
+            elements.forEach((element, index) => {
+                const rect = element.getBoundingClientRect();
+                if(x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+                    element.remove();
+                    elements.splice(index, 1);
                 }
-            }
+            });
+        }
 
-            function expandCanvasIfNeeded(x, y) {
-                const padding = 50;
-                const expandAmount = 200;
-                let currentWidth = parseFloat(canvas.style.width) || canvas.offsetWidth;
-                let currentHeight = parseFloat(canvas.style.height) || canvas.offsetHeight;
-                
-                if (x > currentWidth - padding) currentWidth += expandAmount;
-                if (y > currentHeight - padding) currentHeight += expandAmount;
-                
-                if (currentWidth !== canvas.offsetWidth || currentHeight !== canvas.offsetHeight) {
-                    canvas.style.width = currentWidth + 'px';
-                    canvas.style.height = currentHeight + 'px';
-                    generateMoreDots(currentWidth, currentHeight);
-                }
-            }
+        // Save as PDF
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            html2canvas(document.querySelector('.canvas-container')).then(canvas => {
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgData = canvas.toDataURL('image/png');
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const imgWidth = pageWidth;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-            function handleSelection(e) {
-                if (currentTool !== 'select') return;
-                const element = e.target.closest('.text-box, img');
-                
-                if (element) {
-                    if (selectedElement) {
-                        selectedElement.classList.remove('selected');
-                        if (selectedElement.classList.contains('text-box')) {
-                            selectedElement.contentEditable = 'false';
-                        }
-                    }
-                    selectedElement = element;
-                    selectedElement.classList.add('selected');
-                    
-                    if (selectedElement.classList.contains('text-box')) {
-                        selectedElement.contentEditable = 'true';
-                        selectedElement.focus();
-                    }
-                    
-                    const rect = selectedElement.getBoundingClientRect();
-                    offset.x = e.clientX - rect.left + canvasContainer.scrollLeft;
-                    offset.y = e.clientY - rect.top + canvasContainer.scrollTop;
-                }
-            }
-
-            function moveElement(e) {
-                if (!selectedElement || currentTool !== 'select') return;
-                
-                const rect = canvas.getBoundingClientRect();
-                const scrollX = canvasContainer.scrollLeft;
-                const scrollY = canvasContainer.scrollTop;
-                
-                const x = e.clientX - rect.left + scrollX - offset.x;
-                const y = e.clientY - rect.top + scrollY - offset.y;
-                
-                selectedElement.style.left = `${Math.max(0, x)}px`;
-                selectedElement.style.top = `${Math.max(0, y)}px`;
-            }
-
-            function handleImageUpload(e) {
-                const file = e.target.files[0];
-                if (!file) return;
-                
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const img = document.createElement('img');
-                    img.src = event.target.result;
-                    img.style.position = 'absolute';
-                    img.style.left = canvasContainer.scrollLeft + 'px';
-                    img.style.top = canvasContainer.scrollTop + 'px';
-                    img.style.maxWidth = '300px';
-                    img.style.maxHeight = '300px';
-                    canvas.appendChild(img);
-                    imageElements.push(img);
-                };
-                reader.readAsDataURL(file);
-            }
-
-            async function saveToPDF() {
-                pdfProgress.style.display = 'block';
-                try {
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF();
-                    const canvasElement = await html2canvas(canvas);
-                    const imgData = canvasElement.toDataURL('image/png');
-                    
-                    const imgWidth = pdf.internal.pageSize.getWidth();
-                    const imgHeight = (canvasElement.height * imgWidth) / canvasElement.width;
-                    
-                    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-                    pdf.save('canvas-notes.pdf');
-                } catch (error) {
-                    console.error('PDF generation error:', error);
-                    alert('Error generating PDF');
-                } finally {
-                    pdfProgress.style.display = 'none';
-                }
-            }
-
-            function init() {
-                generateDots();
-                
-                document.querySelectorAll('.tool').forEach(tool => {
-                    tool.addEventListener('click', () => setActiveTool(tool.id));
-                });
-                
-                canvas.addEventListener('mousedown', (e) => {
-                    if (currentTool === 'pen') startDrawing(e);
-                    if (currentTool === 'select') handleSelection(e);
-                });
-                
-                document.addEventListener('mousemove', (e) => {
-                    if (isDrawing) draw(e);
-                    if (selectedElement && currentTool === 'select') moveElement(e);
-                });
-                
-                window.addEventListener('mouseup', stopDrawing);
-                
-                canvas.addEventListener('click', function(e) {
-                    if (currentTool === 'text' && e.target === canvas) {
-                        const rect = canvas.getBoundingClientRect();
-                        const x = e.clientX - rect.left + canvasContainer.scrollLeft;
-                        const y = e.clientY - rect.top + canvasContainer.scrollTop;
-                        createTextBox(x, y);
-                    }
-                });
-                
-                document.getElementById('image-upload').addEventListener('change', handleImageUpload);
-                document.getElementById('save-pdf').addEventListener('click', saveToPDF);
-                
-                document.querySelectorAll('.color-option').forEach(option => {
-                    option.addEventListener('click', () => {
-                        currentColor = option.dataset.color;
-                        colorPalette.style.display = 'none';
-                    });
-                });
-                
-                canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-                
-                canvasContainer.scrollTo(
-                    (canvas.offsetWidth - canvasContainer.offsetWidth) / 2,
-                    (canvas.offsetHeight - canvasContainer.offsetHeight) / 2
-                );
-            }
-
-            init();
+                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                pdf.save('annotation.pdf');
+            });
         });
     </script>
 </body>
