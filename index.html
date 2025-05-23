@@ -3,766 +3,542 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grid Note-Taking App</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/indie-flower/1.0.0/indieflower.min.css" rel="stylesheet">
+    <title>Bento Notes Formatter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Indie+Flower:wght@400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
-            font-family: Arial, sans-serif;
-            overflow: hidden;
-            background-color: #000;
-            height: 100vh;
-            touch-action: none;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 20px;
         }
-        
-        #toolbar {
-            position: fixed;
-            top: 0;
-            left: 0;
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            height: calc(100vh - 40px);
+        }
+
+        .input-section {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            gap: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #6b7280;
+            font-size: 1.1rem;
+        }
+
+        .input-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-card textarea {
             width: 100%;
-            height: 60px;
-            background-color: #222;
-            display: flex;
-            align-items: center;
-            padding: 0 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-            z-index: 100;
+            height: 100%;
+            min-height: 300px;
+            border: none;
+            outline: none;
+            resize: none;
+            font-family: 'Indie Flower', cursive;
+            font-size: 16px;
+            line-height: 1.6;
+            background: transparent;
+            color: #374151;
         }
-        
-        .tool {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background-color: #333;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-right: 15px;
+
+        .input-card textarea::placeholder {
+            color: #9ca3af;
+            font-style: italic;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .theme-selector h3 {
+            margin-bottom: 15px;
+            color: #374151;
+            font-weight: 600;
+        }
+
+        .theme-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .theme-btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 15px;
             cursor: pointer;
-            transition: all 0.2s;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            color: white;
+            position: relative;
+            overflow: hidden;
         }
-        
-        .tool:hover {
-            background-color: #444;
+
+        .theme-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: left 0.3s ease;
         }
-        
-        .tool.active {
-            background-color: #666;
+
+        .theme-btn:hover::before {
+            left: 0;
         }
-        
-        .tool i {
-            color: #fff;
+
+        .theme-btn.red {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+        }
+
+        .theme-btn.blue {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+        }
+
+        .theme-btn.green {
+            background: linear-gradient(135deg, #a8e6cf, #81c784);
+        }
+
+        .theme-btn.yellow {
+            background: linear-gradient(135deg, #ffd93d, #ffb74d);
+        }
+
+        .theme-btn.active {
+            transform: scale(0.95);
+            box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .proceed-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .proceed-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: left 0.3s ease;
+        }
+
+        .proceed-btn:hover::before {
+            left: 0;
+        }
+
+        .proceed-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(102, 126, 234, 0.3);
+        }
+
+        .preview-section {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+        }
+
+        .preview-content {
+            font-family: 'Indie Flower', cursive;
+            font-size: 18px;
+            line-height: 1.8;
+            color: #374151;
+            min-height: 100%;
+        }
+
+        .note-box {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+        }
+
+        .note-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .note-box h3 {
+            font-weight: 700;
+            margin: 0 0 15px 0;
+            padding: 8px 12px;
+            border-radius: 8px;
             font-size: 20px;
         }
-        
-        #canvas-container {
-            position: absolute;
-            top: 60px;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            overflow: hidden;
+
+        .note-box p {
+            margin-bottom: 12px;
+            padding: 4px 0;
+            line-height: 1.6;
+        }
+
+        .note-box:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Theme styles for boxes */
+        .theme-red .note-box {
+            background: linear-gradient(135deg, rgba(255, 224, 224, 0.6), rgba(255, 179, 179, 0.4));
+            border: 1px solid rgba(229, 62, 62, 0.2);
         }
         
-        canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
+        .theme-red .note-box h3 {
+            background: linear-gradient(135deg, #ffe0e0, #ffb3b3);
+            color: #c53030;
+            border-left: 4px solid #e53e3e;
+        }
+
+        .theme-blue .note-box {
+            background: linear-gradient(135deg, rgba(224, 242, 255, 0.6), rgba(179, 218, 255, 0.4));
+            border: 1px solid rgba(49, 130, 206, 0.2);
         }
         
-        #grid-canvas {
-            z-index: 1;
+        .theme-blue .note-box h3 {
+            background: linear-gradient(135deg, #e0f2ff, #b3daff);
+            color: #2b6cb0;
+            border-left: 4px solid #3182ce;
+        }
+
+        .theme-green .note-box {
+            background: linear-gradient(135deg, rgba(224, 255, 224, 0.6), rgba(179, 255, 179, 0.4));
+            border: 1px solid rgba(56, 161, 105, 0.2);
         }
         
-        #drawing-canvas {
-            z-index: 2;
+        .theme-green .note-box h3 {
+            background: linear-gradient(135deg, #e0ffe0, #b3ffb3);
+            color: #2f855a;
+            border-left: 4px solid #38a169;
+        }
+
+        .theme-yellow .note-box {
+            background: linear-gradient(135deg, rgba(255, 244, 224, 0.6), rgba(255, 232, 179, 0.4));
+            border: 1px solid rgba(214, 158, 46, 0.2);
         }
         
-        #color-picker {
-            position: absolute;
-            display: none;
-            background-color: #333;
-            border-radius: 10px;
-            padding: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            z-index: 200;
+        .theme-yellow .note-box h3 {
+            background: linear-gradient(135deg, #fff4e0, #ffe8b3);
+            color: #b7791f;
+            border-left: 4px solid #d69e2e;
         }
-        
-        .color-option {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            margin: 5px;
-            cursor: pointer;
-            border: 2px solid transparent;
-            transition: transform 0.2s;
-        }
-        
-        .color-option:hover {
-            transform: scale(1.2);
-        }
-        
-        .color-option.active {
-            border-color: white;
-        }
-        
-        #color-red { background-color: #ff3333; }
-        #color-blue { background-color: #3366ff; }
-        #color-yellow { background-color: #ffcc00; }
-        #color-green { background-color: #33cc33; }
-        #color-purple { background-color: #9933ff; }
-        #color-random { 
-            background: linear-gradient(135deg, #ff3333, #3366ff, #ffcc00, #33cc33, #9933ff);
-        }
-        
-        .text-box {
-            position: absolute;
-            background-color: transparent;
-            min-width: 100px;
-            min-height: 30px;
-            padding: 8px;
-            border: 1px dashed rgba(255, 255, 255, 0.3);
-            color: white;
-            z-index: 10;
-            font-family: 'Indie Flower', cursive;
-            overflow: hidden;
-            resize: both;
-            cursor: move;
-        }
-        
-        .text-box.heading {
-            font-size: 24px;
-            font-weight: bold;
-            font-family: Arial, sans-serif;
-        }
-        
-        .text-box:focus {
-            outline: none;
-            border: 1px dashed white;
-        }
-        
-        .selected {
-            border: 2px dashed white !important;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-        }
-        
-        .resize-handle {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background-color: white;
-            border-radius: 50%;
-            z-index: 15;
-        }
-        
-        .resize-handle.top-left {
-            top: -5px;
-            left: -5px;
-            cursor: nw-resize;
-        }
-        
-        .resize-handle.top-right {
-            top: -5px;
-            right: -5px;
-            cursor: ne-resize;
-        }
-        
-        .resize-handle.bottom-left {
-            bottom: -5px;
-            left: -5px;
-            cursor: sw-resize;
-        }
-        
-        .resize-handle.bottom-right {
-            bottom: -5px;
-            right: -5px;
-            cursor: se-resize;
-        }
-        
-        .selection-box {
-            position: absolute;
-            border: 2px dashed white;
-            background-color: rgba(255, 255, 255, 0.1);
-            z-index: 5;
-            pointer-events: none;
-        }
-        
-        .selection-area {
-            position: absolute;
-            border: 2px dashed rgba(255, 255, 255, 0.7);
-            background-color: rgba(255, 255, 255, 0.1);
-            z-index: 5;
-            pointer-events: none;
-        }
-        
-        .text-input-modal {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: #333;
-            border-radius: 10px;
-            padding: 20px;
-            z-index: 300;
-            display: none;
-            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
-            width: 90%;
-            max-width: 400px;
-        }
-        
-        .text-input-modal textarea {
-            width: 100%;
-            height: 100px;
-            background-color: #222;
-            border: 1px solid #444;
-            color: white;
-            font-family: 'Indie Flower', cursive;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            resize: vertical;
-        }
-        
-        .text-input-modal textarea:focus {
-            outline: none;
-            border-color: #666;
-        }
-        
-        .modal-buttons {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-        }
-        
-        .modal-btn {
-            padding: 8px 15px;
-            border-radius: 5px;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        
-        .confirm-btn {
-            background-color: #3366ff;
-            color: white;
-        }
-        
-        .cancel-btn {
-            background-color: #444;
-            color: white;
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                height: auto;
+                gap: 15px;
+            }
+            
+            .theme-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
         }
     </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div id="toolbar">
-        <div class="tool active" id="pen-tool" title="Pen Tool">
-            <i class="fas fa-pen"></i>
+    <div class="container">
+        <div class="input-section">
+            <div class="header">
+                <h1>📝 Bento Notes</h1>
+                <p>Transform your text into beautiful, styled notes</p>
+            </div>
+            
+            <div class="input-card">
+                <textarea 
+                    id="textInput" 
+                    placeholder="Enter your text here...
+
+Use **text** for headings
+Write 'xxxx' to create new boxes
+Regular text will be formatted as body text
+
+Example:
+**Electromagnetic Induction**
+
+Magnetic flux through any surface, held perpendicular to the field lines, is called magnetic flux which is denoted by ΦB.
+
+xxxx
+
+**Faraday's Law**
+
+When the loop is closed, induced e.m.f. drives current in either a clockwise or anticlockwise direction.
+
+xxxx
+
+**Lenz's Law**
+
+The direction of induced current is such that it opposes the change in magnetic flux."
+                ></textarea>
+            </div>
+            
+            <div class="controls">
+                <div class="theme-selector">
+                    <h3>Choose Color Theme:</h3>
+                    <div class="theme-buttons">
+                        <button class="theme-btn red active" onclick="selectTheme('red')">🔴 Red Theme</button>
+                        <button class="theme-btn blue" onclick="selectTheme('blue')">🔵 Blue Theme</button>
+                        <button class="theme-btn green" onclick="selectTheme('green')">🟢 Green Theme</button>
+                        <button class="theme-btn yellow" onclick="selectTheme('yellow')">🟡 Yellow Theme</button>
+                    </div>
+                </div>
+                <button class="proceed-btn" onclick="generatePDF()">📄 Save as PDF</button>
+            </div>
         </div>
-        <div class="tool" id="text-tool" title="Text Tool">
-            <i class="fas fa-font"></i>
-        </div>
-        <div class="tool" id="select-tool" title="Select Tool">
-            <i class="fas fa-mouse-pointer"></i>
-        </div>
-        <!-- More tools can be added here -->
-    </div>
-    
-    <div id="canvas-container">
-        <canvas id="grid-canvas"></canvas>
-        <canvas id="drawing-canvas"></canvas>
-        <div id="selection-area" class="selection-area" style="display: none;"></div>
-    </div>
-    
-    <div id="color-picker">
-        <div class="color-option active" id="color-red" data-color="#ff3333"></div>
-        <div class="color-option" id="color-blue" data-color="#3366ff"></div>
-        <div class="color-option" id="color-yellow" data-color="#ffcc00"></div>
-        <div class="color-option" id="color-green" data-color="#33cc33"></div>
-        <div class="color-option" id="color-purple" data-color="#9933ff"></div>
-        <div class="color-option" id="color-random" data-color="random"></div>
-    </div>
-    
-    <div class="text-input-modal" id="text-input-modal">
-        <textarea id="text-input" placeholder="Enter your text here... Use *[text]* for headings"></textarea>
-        <div class="modal-buttons">
-            <button class="modal-btn cancel-btn" id="cancel-text-btn">Cancel</button>
-            <button class="modal-btn confirm-btn" id="confirm-text-btn">Add Text</button>
+        
+        <div class="preview-section theme-red" id="preview">
+            <div class="preview-content" id="previewContent">
+                <h2>✨ Preview</h2>
+                <p>Your formatted notes will appear here as you type...</p>
+                <p>Use **text** to create headings with beautiful styling!</p>
+            </div>
         </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Canvas setup
-            const gridCanvas = document.getElementById('grid-canvas');
-            const drawingCanvas = document.getElementById('drawing-canvas');
-            const gridCtx = gridCanvas.getContext('2d');
-            const drawCtx = drawingCanvas.getContext('2d');
+        let currentTheme = 'red';
+        
+        function selectTheme(theme) {
+            currentTheme = theme;
             
-            // Tools
-            const penTool = document.getElementById('pen-tool');
-            const textTool = document.getElementById('text-tool');
-            const selectTool = document.getElementById('select-tool');
+            // Update active button
+            document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.theme-btn.${theme}`).classList.add('active');
             
-            // Color picker
-            const colorPicker = document.getElementById('color-picker');
-            const colorOptions = document.querySelectorAll('.color-option');
+            // Update preview theme
+            const preview = document.getElementById('preview');
+            preview.className = `preview-section theme-${theme}`;
             
-            // Text modal
-            const textModal = document.getElementById('text-input-modal');
-            const textInput = document.getElementById('text-input');
-            const confirmTextBtn = document.getElementById('confirm-text-btn');
-            const cancelTextBtn = document.getElementById('cancel-text-btn');
-            
-            // Selection
-            const selectionArea = document.getElementById('selection-area');
-            
-            // State variables
-            let isDrawing = false;
-            let lastX = 0;
-            let lastY = 0;
-            let currentColor = '#ff3333';
-            let currentTool = 'pen';
-            let penPressTimer;
-            let clickX, clickY;
-            let selectedElement = null;
-            let resizing = false;
-            let resizeHandle = null;
-            let isSelecting = false;
-            let selectionStartX = 0;
-            let selectionStartY = 0;
-
-            // Initialize
-            resizeCanvases();
-
-            // Canvas resizing
-            function resizeCanvases() {
-                const container = document.getElementById('canvas-container');
-                gridCanvas.width = container.offsetWidth;
-                gridCanvas.height = container.offsetHeight;
-                drawingCanvas.width = container.offsetWidth;
-                drawingCanvas.height = container.offsetHeight;
-                drawGrid();
+            // Refresh preview
+            updatePreview();
+        }
+        
+        function formatText(text) {
+            if (!text.trim()) {
+                return `
+                    <div class="note-box">
+                        <h3>✨ Preview</h3>
+                        <p>Your formatted notes will appear here as you type...</p>
+                        <p>Use **text** to create headings and write "xxxx" to create new boxes!</p>
+                    </div>
+                `;
             }
-
-            // Grid drawing
-            function drawGrid() {
-                gridCtx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
-                gridCtx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-                const spacing = 20;
-                const dotSize = 1;
-
-                for (let x = spacing; x < gridCanvas.width; x += spacing) {
-                    for (let y = spacing; y < gridCanvas.height; y += spacing) {
-                        gridCtx.beginPath();
-                        gridCtx.arc(x, y, dotSize, 0, Math.PI * 2);
-                        gridCtx.fill();
+            
+            // Split text by "xxxx" (case insensitive) to create separate boxes
+            const boxes = text.split(/xxxx/gi);
+            let formattedHTML = '';
+            
+            // Process each box
+            for (let i = 0; i < boxes.length; i++) {
+                const boxContent = boxes[i].trim();
+                
+                // Skip completely empty boxes
+                if (boxContent === '') continue;
+                
+                formattedHTML += '<div class="note-box">';
+                
+                // Split box content into lines and process each line
+                const lines = boxContent.split('\n');
+                let hasContent = false;
+                
+                for (let line of lines) {
+                    const trimmedLine = line.trim();
+                    
+                    // Skip empty lines
+                    if (trimmedLine === '') continue;
+                    
+                    // Check for heading format **text**
+                    const headingMatch = trimmedLine.match(/^\*\*(.*?)\*\*$/);
+                    if (headingMatch && headingMatch[1].trim()) {
+                        formattedHTML += `<h3>${headingMatch[1].trim()}</h3>`;
+                        hasContent = true;
+                    } else {
+                        // Regular paragraph text
+                        formattedHTML += `<p>${trimmedLine}</p>`;
+                        hasContent = true;
                     }
                 }
-            }
-
-            // Drawing functions
-            function startDrawing(e) {
-                if (currentTool !== 'pen') return;
-                isDrawing = true;
-                const pos = getEventPosition(e);
-                lastX = pos.x;
-                lastY = pos.y;
-            }
-
-            function draw(e) {
-                if (!isDrawing || currentTool !== 'pen') return;
-                e.preventDefault();
-
-                const pos = getEventPosition(e);
                 
-                drawCtx.lineJoin = 'round';
-                drawCtx.lineCap = 'round';
-                drawCtx.lineWidth = 3;
-                drawCtx.strokeStyle = currentColor;
-
-                drawCtx.beginPath();
-                drawCtx.moveTo(lastX, lastY);
-                drawCtx.lineTo(pos.x, pos.y);
-                drawCtx.stroke();
-
-                lastX = pos.x;
-                lastY = pos.y;
+                // If box has no content, add placeholder
+                if (!hasContent) {
+                    formattedHTML += '<p>Empty box</p>';
+                }
+                
+                formattedHTML += '</div>';
             }
-
-            function stopDrawing() {
-                isDrawing = false;
+            
+            // If no content was generated, show default
+            if (!formattedHTML) {
+                formattedHTML = '<div class="note-box"><p>Start typing to see your notes...</p></div>';
             }
-
-            // Event position handling
-            function getEventPosition(e) {
-                let x, y;
-                if (e.type.includes('touch')) {
-                    x = e.touches[0].clientX;
-                    y = e.touches[0].clientY - 60; // Adjust for toolbar
+            
+            return formattedHTML;
+        }
+        
+        function updatePreview() {
+            const input = document.getElementById('textInput').value;
+            const preview = document.getElementById('previewContent');
+            preview.innerHTML = formatText(input);
+        }
+        
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            const input = document.getElementById('textInput').value;
+            if (!input.trim()) {
+                alert('Please enter some text to generate PDF');
+                return;
+            }
+            
+            // Set theme colors
+            const themeColors = {
+                red: { heading: [197, 48, 48], bg: [255, 224, 224] },
+                blue: { heading: [43, 108, 176], bg: [224, 242, 255] },
+                green: { heading: [47, 133, 90], bg: [224, 255, 224] },
+                yellow: { heading: [183, 121, 31], bg: [255, 244, 224] }
+            };
+            
+            const colors = themeColors[currentTheme];
+            
+            // Set up document
+            doc.setFont('helvetica');
+            let yPosition = 30;
+            const pageWidth = doc.internal.pageSize.width;
+            const margin = 20;
+            const maxWidth = pageWidth - (margin * 2);
+            
+            // Process text
+            const lines = input.split('\n');
+            
+            for (let line of lines) {
+                line = line.trim();
+                
+                if (line === '') {
+                    yPosition += 8;
+                    continue;
+                }
+                
+                // Check for heading
+                const headingMatch = line.match(/^\*\*(.*?)\*\*$/);
+                if (headingMatch) {
+                    // Add background rectangle for heading
+                    doc.setFillColor(colors.bg[0], colors.bg[1], colors.bg[2]);
+                    doc.rect(margin - 5, yPosition - 12, maxWidth + 10, 20, 'F');
+                    
+                    // Add heading text
+                    doc.setTextColor(colors.heading[0], colors.heading[1], colors.heading[2]);
+                    doc.setFontSize(16);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(headingMatch[1], margin, yPosition);
+                    yPosition += 25;
                 } else {
-                    x = e.clientX;
-                    y = e.clientY - 60; // Adjust for toolbar
-                }
-                return { x, y };
-            }
-
-            // Color picker functions
-            function showColorPicker(x, y) {
-                colorPicker.style.display = 'flex';
-                colorPicker.style.left = `${x - 80}px`;
-                colorPicker.style.top = `${y + 10}px`;
-            }
-
-            function hideColorPicker() {
-                colorPicker.style.display = 'none';
-            }
-
-            function selectColor(color) {
-                currentColor = color === 'random' ? getRandomColor() : color;
-                colorOptions.forEach(option => {
-                    option.classList.toggle('active', option.dataset.color === color);
-                });
-                hideColorPicker();
-            }
-
-            function getRandomColor() {
-                const colors = ['#ff3333', '#3366ff', '#ffcc00', '#33cc33', '#9933ff'];
-                return colors[Math.floor(Math.random() * colors.length)];
-            }
-
-            // Text box functions
-            function showTextModal(x, y) {
-                textInput.value = '';
-                textModal.style.display = 'block';
-                clickX = x;
-                clickY = y;
-            }
-
-            function hideTextModal() {
-                textModal.style.display = 'none';
-            }
-
-            function addTextBox() {
-                const text = textInput.value.trim();
-                if (!text) return;
-
-                const textBox = document.createElement('div');
-                textBox.contentEditable = true;
-                textBox.className = 'text-box';
-                textBox.style.color = currentColor;
-
-                const headingRegex = /^\*\[(.*)\]\*$/;
-                const match = text.match(headingRegex);
-                
-                if (match) {
-                    textBox.innerText = match[1];
-                    textBox.classList.add('heading');
-                } else {
-                    textBox.innerText = text;
-                }
-
-                textBox.style.left = `${clickX}px`;
-                textBox.style.top = `${clickY}px`;
-
-                textBox.addEventListener('click', (e) => {
-                    if (currentTool === 'select') {
-                        e.stopPropagation();
-                        selectElement(textBox);
+                    // Regular text
+                    doc.setTextColor(55, 65, 81);
+                    doc.setFontSize(12);
+                    doc.setFont('helvetica', 'normal');
+                    
+                    // Handle text wrapping
+                    const textLines = doc.splitTextToSize(line, maxWidth);
+                    for (let textLine of textLines) {
+                        if (yPosition > 270) {
+                            doc.addPage();
+                            yPosition = 30;
+                        }
+                        doc.text(textLine, margin, yPosition);
+                        yPosition += 8;
                     }
-                });
-
-                makeTextBoxDraggable(textBox);
-                document.getElementById('canvas-container').appendChild(textBox);
-                hideTextModal();
-            }
-
-            // Draggable functionality
-            function makeTextBoxDraggable(element) {
-                let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-
-                element.addEventListener('mousedown', dragMouseDown);
-                element.addEventListener('touchstart', dragTouchStart, { passive: false });
-
-                function dragMouseDown(e) {
-                    if (currentTool !== 'select' || e.target.classList.contains('resize-handle')) return;
-                    e.preventDefault();
-                    selectElement(element);
-                    pos3 = e.clientX;
-                    pos4 = e.clientY;
-                    document.addEventListener('mouseup', closeDragElement);
-                    document.addEventListener('mousemove', elementDrag);
+                    yPosition += 5;
                 }
-
-                function dragTouchStart(e) {
-                    if (currentTool !== 'select' || e.target.classList.contains('resize-handle')) return;
-                    e.preventDefault();
-                    selectElement(element);
-                    pos3 = e.touches[0].clientX;
-                    pos4 = e.touches[0].clientY;
-                    document.addEventListener('touchend', closeTouchDragElement);
-                    document.addEventListener('touchmove', elementTouchDrag, { passive: false });
-                }
-
-                function elementDrag(e) {
-                    e.preventDefault();
-                    pos1 = pos3 - e.clientX;
-                    pos2 = pos4 - e.clientY;
-                    pos3 = e.clientX;
-                    pos4 = e.clientY;
-                    element.style.top = `${element.offsetTop - pos2}px`;
-                    element.style.left = `${element.offsetLeft - pos1}px`;
-                }
-
-                function elementTouchDrag(e) {
-                    e.preventDefault();
-                    pos1 = pos3 - e.touches[0].clientX;
-                    pos2 = pos4 - e.touches[0].clientY;
-                    pos3 = e.touches[0].clientX;
-                    pos4 = e.touches[0].clientY;
-                    element.style.top = `${element.offsetTop - pos2}px`;
-                    element.style.left = `${element.offsetLeft - pos1}px`;
-                }
-
-                function closeDragElement() {
-                    document.removeEventListener('mouseup', closeDragElement);
-                    document.removeEventListener('mousemove', elementDrag);
-                }
-
-                function closeTouchDragElement() {
-                    document.removeEventListener('touchend', closeTouchDragElement);
-                    document.removeEventListener('touchmove', elementTouchDrag);
-                }
-            }
-
-            // Selection functionality
-            function selectElement(element) {
-                clearSelection();
-                selectedElement = element;
-                element.classList.add('selected');
-                addResizeHandles(element);
-            }
-
-            function addResizeHandles(element) {
-                const positions = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
-                positions.forEach(pos => {
-                    const handle = document.createElement('div');
-                    handle.className = `resize-handle ${pos}`;
-                    handle.dataset.position = pos;
-                    handle.addEventListener('mousedown', startResize);
-                    handle.addEventListener('touchstart', startResizeTouchEvent, { passive: false });
-                    element.appendChild(handle);
-                });
-            }
-
-            function removeResizeHandles(element) {
-                element.querySelectorAll('.resize-handle').forEach(handle => handle.remove());
-            }
-
-            function clearSelection() {
-                document.querySelectorAll('.selected').forEach(el => {
-                    el.classList.remove('selected');
-                    removeResizeHandles(el);
-                });
-                selectedElement = null;
-                resizing = false;
-                resizeHandle = null;
-            }
-
-            function startResize(e) {
-                e.stopPropagation();
-                resizing = true;
-                resizeHandle = e.target.dataset.position;
-                document.addEventListener('mousemove', resize);
-                document.addEventListener('mouseup', stopResize);
-            }
-
-            function startResizeTouchEvent(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                resizing = true;
-                resizeHandle = e.target.dataset.position;
-                document.addEventListener('touchmove', resizeTouch, { passive: false });
-                document.addEventListener('touchend', stopResizeTouch);
-            }
-
-            function resize(e) {
-                if (!resizing || !selectedElement) return;
-                const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
-                const relativeX = e.clientX - containerRect.left;
-                const relativeY = e.clientY - containerRect.top;
-                updateElementSize(relativeX, relativeY);
-            }
-
-            function resizeTouch(e) {
-                if (!resizing || !selectedElement) return;
-                e.preventDefault();
-                const touch = e.touches[0];
-                const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
-                const relativeX = touch.clientX - containerRect.left;
-                const relativeY = touch.clientY - containerRect.top;
-                updateElementSize(relativeX, relativeY);
-            }
-
-            function updateElementSize(x, y) {
-                const rect = selectedElement.getBoundingClientRect();
-                const currentLeft = parseInt(selectedElement.style.left || 0);
-                const currentTop = parseInt(selectedElement.style.top || 0);
-
-                switch(resizeHandle) {
-                    case 'top-left':
-                        selectedElement.style.width = `${rect.width - (x - currentLeft)}px`;
-                        selectedElement.style.height = `${rect.height - (y - currentTop)}px`;
-                        selectedElement.style.left = `${x}px`;
-                        selectedElement.style.top = `${y}px`;
-                        break;
-                    case 'top-right':
-                        selectedElement.style.width = `${x - currentLeft}px`;
-                        selectedElement.style.height = `${rect.height - (y - currentTop)}px`;
-                        selectedElement.style.top = `${y}px`;
-                        break;
-                    case 'bottom-left':
-                        selectedElement.style.width = `${rect.width - (x - currentLeft)}px`;
-                        selectedElement.style.height = `${y - currentTop}px`;
-                        selectedElement.style.left = `${x}px`;
-                        break;
-                    case 'bottom-right':
-                        selectedElement.style.width = `${x - currentLeft}px`;
-                        selectedElement.style.height = `${y - currentTop}px`;
-                        break;
-                }
-            }
-
-            function stopResize() {
-                resizing = false;
-                document.removeEventListener('mousemove', resize);
-                document.removeEventListener('mouseup', stopResize);
-            }
-
-            function stopResizeTouch() {
-                resizing = false;
-                document.removeEventListener('touchmove', resizeTouch);
-                document.removeEventListener('touchend', stopResizeTouch);
-            }
-
-            // Area selection
-            function startAreaSelection(e) {
-                if (currentTool !== 'select') return;
-                clearSelection();
-                isSelecting = true;
-
-                const pos = getEventPosition(e);
-                selectionStartX = pos.x;
-                selectionStartY = pos.y;
-
-                selectionArea.style.left = `${selectionStartX}px`;
-                selectionArea.style.top = `${selectionStartY}px`;
-                selectionArea.style.width = '0px';
-                selectionArea.style.height = '0px';
-                selectionArea.style.display = 'block';
-
-                document.addEventListener('mousemove', updateAreaSelection);
-                document.addEventListener('mouseup', endAreaSelection);
-            }
-
-            function updateAreaSelection(e) {
-                if (!isSelecting) return;
-                const pos = getEventPosition(e);
                 
-                const width = pos.x - selectionStartX;
-                const height = pos.y - selectionStartY;
-
-                selectionArea.style.width = `${Math.abs(width)}px`;
-                selectionArea.style.height = `${Math.abs(height)}px`;
-                selectionArea.style.left = `${width < 0 ? pos.x : selectionStartX}px`;
-                selectionArea.style.top = `${height < 0 ? pos.y : selectionStartY}px`;
-            }
-
-            function endAreaSelection() {
-                if (!isSelecting) return;
-                isSelecting = false;
-
-                const selRect = selectionArea.getBoundingClientRect();
-                const containerRect = document.getElementById('canvas-container').getBoundingClientRect();
-
-                document.querySelectorAll('.text-box').forEach(box => {
-                    const boxRect = box.getBoundingClientRect();
-                    if (boxRect.left < selRect.right && 
-                        boxRect.right > selRect.left &&
-                        boxRect.top < selRect.bottom &&
-                        boxRect.bottom > selRect.top) {
-                        selectElement(box);
-                    }
-                });
-
-                selectionArea.style.display = 'none';
-                document.removeEventListener('mousemove', updateAreaSelection);
-                document.removeEventListener('mouseup', endAreaSelection);
-            }
-
-            // Event listeners
-            window.addEventListener('resize', resizeCanvases);
-
-            // Tool switching
-            penTool.addEventListener('click', () => setActiveTool('pen'));
-            textTool.addEventListener('click', () => setActiveTool('text'));
-            selectTool.addEventListener('click', () => setActiveTool('select'));
-
-            function setActiveTool(tool) {
-                currentTool = tool;
-                [penTool, textTool, selectTool].forEach(t => t.classList.remove('active'));
-                document.getElementById(`${tool}-tool`).classList.add('active');
-                clearSelection();
-            }
-
-            // Canvas interactions
-            drawingCanvas.addEventListener('mousedown', e => {
-                if (currentTool === 'pen') startDrawing(e);
-                else if (currentTool === 'select') startAreaSelection(e);
-            });
-
-            drawingCanvas.addEventListener('touchstart', e => {
-                if (currentTool === 'pen') startDrawing(e);
-                else if (currentTool === 'select') startAreaSelection(e);
-            });
-
-            drawingCanvas.addEventListener('click', e => {
-                if (currentTool === 'text') {
-                    const pos = getEventPosition(e);
-                    showTextModal(pos.x, pos.y + 60);
+                // Check if we need a new page
+                if (yPosition > 270) {
+                    doc.addPage();
+                    yPosition = 30;
                 }
-            });
-
-            // Color picker events
-            colorOptions.forEach(option => {
-                option.addEventListener('click', () => selectColor(option.dataset.color));
-            });
-
-            document.addEventListener('click', e => {
-                if (!colorPicker.contains(e.target) && e.target !== penTool) {
-                    hideColorPicker();
-                }
-            });
-
-            // Text modal events
-            confirmTextBtn.addEventListener('click', addTextBox);
-            cancelTextBtn.addEventListener('click', hideTextModal);
-            document.addEventListener('keydown', e => {
-                if (e.key === 'Escape') hideTextModal();
-            });
-
-            // Drawing events
-            drawingCanvas.addEventListener('mousemove', draw);
-            drawingCanvas.addEventListener('mouseup', stopDrawing);
-            drawingCanvas.addEventListener('mouseout', stopDrawing);
-            drawingCanvas.addEventListener('touchmove', draw);
-            drawingCanvas.addEventListener('touchend', stopDrawing);
-        });
+            }
+            
+            // Save the PDF
+            doc.save('bento-notes.pdf');
+        }
+        
+        // Add event listener for real-time preview
+        document.getElementById('textInput').addEventListener('input', updatePreview);
+        
+        // Initialize preview
+        updatePreview();
     </script>
 </body>
-</html>
+    </html>
