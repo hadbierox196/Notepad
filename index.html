@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bento Notes Formatter</title>
     <link href="https://fonts.googleapis.com/css2?family=Indie+Flower:wght@400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -17,7 +16,7 @@
             font-family: 'Inter', sans-serif;
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding: 10px;
         }
 
         .container {
@@ -25,45 +24,45 @@
             margin: 0 auto;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            height: calc(100vh - 40px);
+            gap: 15px;
+            height: calc(100vh - 20px);
         }
 
         .input-section {
             display: grid;
             grid-template-rows: auto 1fr auto;
-            gap: 20px;
+            gap: 15px;
         }
 
         .header {
             background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(10px);
             border-radius: 20px;
-            padding: 30px;
+            padding: 20px;
             text-align: center;
             border: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
 
         .header h1 {
-            font-size: 2.5rem;
+            font-size: 2rem;
             font-weight: 600;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
 
         .header p {
             color: #6b7280;
-            font-size: 1.1rem;
+            font-size: 0.9rem;
         }
 
         .input-card {
             background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(10px);
             border-radius: 20px;
-            padding: 25px;
+            padding: 20px;
             border: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             display: flex;
@@ -73,7 +72,7 @@
         .input-card textarea {
             width: 100%;
             height: 100%;
-            min-height: 300px;
+            min-height: 250px;
             border: none;
             outline: none;
             resize: none;
@@ -93,7 +92,7 @@
             background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(10px);
             border-radius: 20px;
-            padding: 25px;
+            padding: 20px;
             border: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
@@ -102,25 +101,27 @@
             margin-bottom: 15px;
             color: #374151;
             font-weight: 600;
+            font-size: 1rem;
         }
 
         .theme-buttons {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 25px;
+            gap: 10px;
+            margin-bottom: 20px;
         }
 
         .theme-btn {
-            padding: 12px 20px;
+            padding: 10px 15px;
             border: none;
-            border-radius: 15px;
+            border-radius: 12px;
             cursor: pointer;
             font-weight: 500;
             transition: all 0.3s ease;
             color: white;
             position: relative;
             overflow: hidden;
+            font-size: 0.9rem;
         }
 
         .theme-btn::before {
@@ -159,14 +160,14 @@
             box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
-        .proceed-btn {
+        .fullscreen-btn {
             width: 100%;
-            padding: 15px;
+            padding: 12px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            border-radius: 15px;
-            font-size: 16px;
+            border-radius: 12px;
+            font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -174,7 +175,7 @@
             overflow: hidden;
         }
 
-        .proceed-btn::before {
+        .fullscreen-btn::before {
             content: '';
             position: absolute;
             top: 0;
@@ -185,11 +186,11 @@
             transition: left 0.3s ease;
         }
 
-        .proceed-btn:hover::before {
+        .fullscreen-btn:hover::before {
             left: 0;
         }
 
-        .proceed-btn:hover {
+        .fullscreen-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 12px 24px rgba(102, 126, 234, 0.3);
         }
@@ -198,7 +199,7 @@
             background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(10px);
             border-radius: 20px;
-            padding: 30px;
+            padding: 20px;
             border: 1px solid rgba(255, 255, 255, 0.2);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             overflow-y: auto;
@@ -206,40 +207,45 @@
 
         .preview-content {
             font-family: 'Indie Flower', cursive;
-            font-size: 18px;
-            line-height: 1.8;
+            font-size: 16px;
+            line-height: 1.6;
             color: #374151;
             min-height: 100%;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            align-content: start;
         }
 
         .note-box {
             background: rgba(255, 255, 255, 0.8);
             border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
+            padding: 18px;
             border: 1px solid rgba(255, 255, 255, 0.3);
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
             backdrop-filter: blur(5px);
             transition: all 0.3s ease;
+            height: fit-content;
         }
 
         .note-box:hover {
-            transform: translateY(-2px);
+            transform: translateY(-3px);
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
         }
 
         .note-box h3 {
             font-weight: 700;
-            margin: 0 0 15px 0;
+            margin: 0 0 12px 0;
             padding: 8px 12px;
             border-radius: 8px;
-            font-size: 20px;
+            font-size: 18px;
         }
 
         .note-box p {
-            margin-bottom: 12px;
-            padding: 4px 0;
-            line-height: 1.6;
+            margin-bottom: 10px;
+            padding: 2px 0;
+            line-height: 1.5;
+            font-size: 15px;
         }
 
         .note-box:last-child {
@@ -248,8 +254,8 @@
 
         /* Theme styles for boxes */
         .theme-red .note-box {
-            background: linear-gradient(135deg, rgba(255, 224, 224, 0.6), rgba(255, 179, 179, 0.4));
-            border: 1px solid rgba(229, 62, 62, 0.2);
+            background: linear-gradient(135deg, rgba(255, 224, 224, 0.7), rgba(255, 179, 179, 0.5));
+            border: 1px solid rgba(229, 62, 62, 0.3);
         }
         
         .theme-red .note-box h3 {
@@ -259,8 +265,8 @@
         }
 
         .theme-blue .note-box {
-            background: linear-gradient(135deg, rgba(224, 242, 255, 0.6), rgba(179, 218, 255, 0.4));
-            border: 1px solid rgba(49, 130, 206, 0.2);
+            background: linear-gradient(135deg, rgba(224, 242, 255, 0.7), rgba(179, 218, 255, 0.5));
+            border: 1px solid rgba(49, 130, 206, 0.3);
         }
         
         .theme-blue .note-box h3 {
@@ -270,8 +276,8 @@
         }
 
         .theme-green .note-box {
-            background: linear-gradient(135deg, rgba(224, 255, 224, 0.6), rgba(179, 255, 179, 0.4));
-            border: 1px solid rgba(56, 161, 105, 0.2);
+            background: linear-gradient(135deg, rgba(224, 255, 224, 0.7), rgba(179, 255, 179, 0.5));
+            border: 1px solid rgba(56, 161, 105, 0.3);
         }
         
         .theme-green .note-box h3 {
@@ -281,8 +287,8 @@
         }
 
         .theme-yellow .note-box {
-            background: linear-gradient(135deg, rgba(255, 244, 224, 0.6), rgba(255, 232, 179, 0.4));
-            border: 1px solid rgba(214, 158, 46, 0.2);
+            background: linear-gradient(135deg, rgba(255, 244, 224, 0.7), rgba(255, 232, 179, 0.5));
+            border: 1px solid rgba(214, 158, 46, 0.3);
         }
         
         .theme-yellow .note-box h3 {
@@ -291,19 +297,142 @@
             border-left: 4px solid #d69e2e;
         }
 
+        /* Fullscreen Modal */
+        .fullscreen-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: none;
+            padding: 20px;
+        }
+
+        .fullscreen-modal.active {
+            display: block;
+        }
+
+        .fullscreen-content {
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: #ff3742;
+            transform: scale(1.1);
+        }
+
+        /* Mobile Responsive */
         @media (max-width: 768px) {
+            body {
+                padding: 5px;
+            }
+
             .container {
                 grid-template-columns: 1fr;
                 height: auto;
-                gap: 15px;
+                gap: 10px;
+            }
+
+            .input-section {
+                order: 1;
+            }
+
+            .preview-section {
+                order: 2;
+                min-height: 300px;
             }
             
             .theme-buttons {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
             }
             
             .header h1 {
-                font-size: 2rem;
+                font-size: 1.8rem;
+            }
+
+            .header p {
+                font-size: 0.8rem;
+            }
+
+            .header, .input-card, .controls, .preview-section {
+                padding: 15px;
+            }
+
+            .input-card textarea {
+                min-height: 200px;
+                font-size: 15px;
+            }
+
+            .preview-content {
+                grid-template-columns: 1fr;
+                gap: 12px;
+                font-size: 15px;
+            }
+
+            .note-box {
+                padding: 15px;
+            }
+
+            .note-box h3 {
+                font-size: 16px;
+            }
+
+            .note-box p {
+                font-size: 14px;
+            }
+
+            .fullscreen-content {
+                padding: 20px;
+            }
+
+            .close-btn {
+                width: 35px;
+                height: 35px;
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .theme-buttons {
+                grid-template-columns: 1fr;
+            }
+
+            .preview-content {
+                grid-template-columns: 1fr;
+            }
+
+            .note-box {
+                padding: 12px;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
             }
         }
     </style>
@@ -313,7 +442,7 @@
         <div class="input-section">
             <div class="header">
                 <h1>📝 Bento Notes</h1>
-                <p>Transform your text into beautiful, styled notes</p>
+                <p>Transform your text into beautiful bento-style notes</p>
             </div>
             
             <div class="input-card">
@@ -323,24 +452,20 @@
 
 Use **text** for headings
 Write 'xxxx' to create new boxes
-Regular text will be formatted as body text
 
 Example:
 **Electromagnetic Induction**
-
-Magnetic flux through any surface, held perpendicular to the field lines, is called magnetic flux which is denoted by ΦB.
+Magnetic flux through any surface, held perpendicular to the field lines.
 
 xxxx
 
 **Faraday's Law**
-
-When the loop is closed, induced e.m.f. drives current in either a clockwise or anticlockwise direction.
+When the loop is closed, induced e.m.f. drives current.
 
 xxxx
 
 **Lenz's Law**
-
-The direction of induced current is such that it opposes the change in magnetic flux."
+The direction of induced current opposes the change."
                 ></textarea>
             </div>
             
@@ -348,21 +473,33 @@ The direction of induced current is such that it opposes the change in magnetic 
                 <div class="theme-selector">
                     <h3>Choose Color Theme:</h3>
                     <div class="theme-buttons">
-                        <button class="theme-btn red active" onclick="selectTheme('red')">🔴 Red Theme</button>
-                        <button class="theme-btn blue" onclick="selectTheme('blue')">🔵 Blue Theme</button>
-                        <button class="theme-btn green" onclick="selectTheme('green')">🟢 Green Theme</button>
-                        <button class="theme-btn yellow" onclick="selectTheme('yellow')">🟡 Yellow Theme</button>
+                        <button class="theme-btn red active" onclick="selectTheme('red')">🔴 Red</button>
+                        <button class="theme-btn blue" onclick="selectTheme('blue')">🔵 Blue</button>
+                        <button class="theme-btn green" onclick="selectTheme('green')">🟢 Green</button>
+                        <button class="theme-btn yellow" onclick="selectTheme('yellow')">🟡 Yellow</button>
                     </div>
                 </div>
-                <button class="proceed-btn" onclick="generatePDF()">📄 Save as PDF</button>
+                <button class="fullscreen-btn" onclick="openFullscreen()">🔍 Preview Fullscreen</button>
             </div>
         </div>
         
         <div class="preview-section theme-red" id="preview">
             <div class="preview-content" id="previewContent">
-                <h2>✨ Preview</h2>
-                <p>Your formatted notes will appear here as you type...</p>
-                <p>Use **text** to create headings with beautiful styling!</p>
+                <div class="note-box">
+                    <h3>✨ Preview</h3>
+                    <p>Your formatted notes will appear here as you type...</p>
+                    <p>Use **text** to create headings and write "xxxx" to create new boxes!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fullscreen Modal -->
+    <div class="fullscreen-modal" id="fullscreenModal">
+        <div class="fullscreen-content theme-red" id="fullscreenContent">
+            <button class="close-btn" onclick="closeFullscreen()">×</button>
+            <div class="preview-content" id="fullscreenPreview">
+                <!-- Content will be copied here -->
             </div>
         </div>
     </div>
@@ -379,7 +516,9 @@ The direction of induced current is such that it opposes the change in magnetic 
             
             // Update preview theme
             const preview = document.getElementById('preview');
+            const fullscreenContent = document.getElementById('fullscreenContent');
             preview.className = `preview-section theme-${theme}`;
+            fullscreenContent.className = `fullscreen-content theme-${theme}`;
             
             // Refresh preview
             updatePreview();
@@ -450,89 +589,31 @@ The direction of induced current is such that it opposes the change in magnetic 
         function updatePreview() {
             const input = document.getElementById('textInput').value;
             const preview = document.getElementById('previewContent');
-            preview.innerHTML = formatText(input);
+            const fullscreenPreview = document.getElementById('fullscreenPreview');
+            
+            const formatted = formatText(input);
+            preview.innerHTML = formatted;
+            fullscreenPreview.innerHTML = formatted;
         }
         
-        function generatePDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
-            const input = document.getElementById('textInput').value;
-            if (!input.trim()) {
-                alert('Please enter some text to generate PDF');
-                return;
-            }
-            
-            // Set theme colors
-            const themeColors = {
-                red: { heading: [197, 48, 48], bg: [255, 224, 224] },
-                blue: { heading: [43, 108, 176], bg: [224, 242, 255] },
-                green: { heading: [47, 133, 90], bg: [224, 255, 224] },
-                yellow: { heading: [183, 121, 31], bg: [255, 244, 224] }
-            };
-            
-            const colors = themeColors[currentTheme];
-            
-            // Set up document
-            doc.setFont('helvetica');
-            let yPosition = 30;
-            const pageWidth = doc.internal.pageSize.width;
-            const margin = 20;
-            const maxWidth = pageWidth - (margin * 2);
-            
-            // Process text
-            const lines = input.split('\n');
-            
-            for (let line of lines) {
-                line = line.trim();
-                
-                if (line === '') {
-                    yPosition += 8;
-                    continue;
-                }
-                
-                // Check for heading
-                const headingMatch = line.match(/^\*\*(.*?)\*\*$/);
-                if (headingMatch) {
-                    // Add background rectangle for heading
-                    doc.setFillColor(colors.bg[0], colors.bg[1], colors.bg[2]);
-                    doc.rect(margin - 5, yPosition - 12, maxWidth + 10, 20, 'F');
-                    
-                    // Add heading text
-                    doc.setTextColor(colors.heading[0], colors.heading[1], colors.heading[2]);
-                    doc.setFontSize(16);
-                    doc.setFont('helvetica', 'bold');
-                    doc.text(headingMatch[1], margin, yPosition);
-                    yPosition += 25;
-                } else {
-                    // Regular text
-                    doc.setTextColor(55, 65, 81);
-                    doc.setFontSize(12);
-                    doc.setFont('helvetica', 'normal');
-                    
-                    // Handle text wrapping
-                    const textLines = doc.splitTextToSize(line, maxWidth);
-                    for (let textLine of textLines) {
-                        if (yPosition > 270) {
-                            doc.addPage();
-                            yPosition = 30;
-                        }
-                        doc.text(textLine, margin, yPosition);
-                        yPosition += 8;
-                    }
-                    yPosition += 5;
-                }
-                
-                // Check if we need a new page
-                if (yPosition > 270) {
-                    doc.addPage();
-                    yPosition = 30;
-                }
-            }
-            
-            // Save the PDF
-            doc.save('bento-notes.pdf');
+        function openFullscreen() {
+            const modal = document.getElementById('fullscreenModal');
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
         }
+        
+        function closeFullscreen() {
+            const modal = document.getElementById('fullscreenModal');
+            modal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+        
+        // Close fullscreen with ESC key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeFullscreen();
+            }
+        });
         
         // Add event listener for real-time preview
         document.getElementById('textInput').addEventListener('input', updatePreview);
