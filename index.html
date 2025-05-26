@@ -6,7 +6,7 @@
     <title>Bento Notes Formatter</title>
     <link href="https://fonts.googleapis.com/css2?family=Indie+Flower:wght@400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        * {
+     * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -434,11 +434,66 @@
             .header h1 {
                 font-size: 1.5rem;
             }
+        }   /* Previous CSS remains the same until pagination controls */
+
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 20px;
+            padding: 10px;
         }
+
+        .page-btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-indicator {
+            color: #4b5563;
+            font-size: 0.9rem;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        /* Remove close-btn styles and add back-btn styles */
     </style>
 </head>
 <body>
-    <div class="container">
+    div class="container">
         <div class="input-section">
             <div class="header">
                 <h1>📝 Bento Notes</h1>
@@ -482,32 +537,108 @@ The direction of induced current opposes the change."
                 <button class="fullscreen-btn" onclick="openFullscreen()">🔍 Preview Fullscreen</button>
             </div>
         </div>
-        
-        <div class="preview-section theme-red" id="preview">
-            <div class="preview-content" id="previewContent">
-                <div class="note-box">
-                    <h3>✨ Preview</h3>
-                    <p>Your formatted notes will appear here as you type...</p>
-                    <p>Use **text** to create headings and write "xxxx" to create new boxes!</p>
-                </div>
-            </div>
+    <!-- Previous HTML remains the same until preview section -->
+
+    <div class="preview-section theme-red" id="preview">
+        <div class="preview-content" id="previewContent"></div>
+        <div class="pagination-controls">
+            <button class="page-btn prev-btn" onclick="changePage(-1)">Previous</button>
+            <span class="page-indicator" id="pageIndicator">Page 1 of 1</span>
+            <button class="page-btn next-btn" onclick="changePage(1)">Next</button>
         </div>
     </div>
 
     <!-- Fullscreen Modal -->
     <div class="fullscreen-modal" id="fullscreenModal">
         <div class="fullscreen-content theme-red" id="fullscreenContent">
-            <button class="close-btn" onclick="closeFullscreen()">×</button>
-            <div class="preview-content" id="fullscreenPreview">
-                <!-- Content will be copied here -->
+            <button class="back-btn" onclick="closeFullscreen()">← Back</button>
+            <div class="preview-content" id="fullscreenPreview"></div>
+            <div class="pagination-controls">
+                <button class="page-btn prev-btn" onclick="changePage(-1)">Previous</button>
+                <span class="page-indicator" id="fullscreenPageIndicator">Page 1 of 1</span>
+                <button class="page-btn next-btn" onclick="changePage(1)">Next</button>
             </div>
         </div>
     </div>
 
     <script>
         let currentTheme = 'red';
-        
-        function selectTheme(theme) {
+        let currentPage = 1;
+        const pageSize = 6;
+        let totalPages = 1;
+        let allBoxes = [];
+
+        function processText(text) {
+            if (!text.trim()) return [];
+            
+            const boxes = text.split(/xxxx/gi);
+            const processedBoxes = [];
+            
+            for (const boxContent of boxes) {
+                const trimmedContent = boxContent.trim();
+                if (!trimmedContent) continue;
+                
+                let boxHTML = '<div class="note-box">';
+                let hasContent = false;
+                
+                trimmedContent.split('\n').forEach(line => {
+                    const trimmedLine = line.trim();
+                    if (!trimmedLine) return;
+                    
+                    const headingMatch = trimmedLine.match(/^\*\*(.*?)\*\*$/);
+                    if (headingMatch) {
+                        boxHTML += `<h3>${headingMatch[1].trim()}</h3>`;
+                        hasContent = true;
+                    } else {
+                        boxHTML += `<p>${trimmedLine}</p>`;
+                        hasContent = true;
+                    }
+                });
+                
+                boxHTML += hasContent ? '</div>' : '<p>Empty box</p></div>';
+                processedBoxes.push(boxHTML);
+            }
+            
+            return processedBoxes.length ? processedBoxes : 
+                ['<div class="note-box"><p>Start typing to see your notes...</p></div>'];
+        }
+
+        function updatePreview() {
+            const input = document.getElementById('textInput').value;
+            allBoxes = processText(input);
+            totalPages = Math.ceil(allBoxes.length / pageSize) || 1;
+            currentPage = Math.min(currentPage, totalPages);
+            
+            const startIdx = (currentPage - 1) * pageSize;
+            const currentBoxes = allBoxes.slice(startIdx, startIdx + pageSize);
+            
+            // Update both preview and fullscreen content
+            ['previewContent', 'fullscreenPreview'].forEach(id => {
+                document.getElementById(id).innerHTML = currentBoxes.join('');
+            });
+            
+            // Update pagination indicators
+            ['pageIndicator', 'fullscreenPageIndicator'].forEach(id => {
+                document.getElementById(id).textContent = `Page ${currentPage} of ${totalPages}`;
+            });
+            
+            // Update button states
+            document.querySelectorAll('.prev-btn').forEach(btn => {
+                btn.disabled = currentPage === 1;
+            });
+            document.querySelectorAll('.next-btn').forEach(btn => {
+                btn.disabled = currentPage === totalPages;
+            });
+        }
+
+        function changePage(delta) {
+            const newPage = currentPage + delta;
+            if (newPage > 0 && newPage <= totalPages) {
+                currentPage = newPage;
+                updatePreview();
+            }
+        }
+function selectTheme(theme) {
             currentTheme = theme;
             
             // Update active button
@@ -585,17 +716,6 @@ The direction of induced current opposes the change."
             
             return formattedHTML;
         }
-        
-        function updatePreview() {
-            const input = document.getElementById('textInput').value;
-            const preview = document.getElementById('previewContent');
-            const fullscreenPreview = document.getElementById('fullscreenPreview');
-            
-            const formatted = formatText(input);
-            preview.innerHTML = formatted;
-            fullscreenPreview.innerHTML = formatted;
-        }
-        
         function openFullscreen() {
             const modal = document.getElementById('fullscreenModal');
             modal.classList.add('active');
@@ -620,6 +740,8 @@ The direction of induced current opposes the change."
         
         // Initialize preview
         updatePreview();
+        // Keep other functions (selectTheme, openFullscreen, closeFullscreen) the same
+        // Add event listeners as before
     </script>
 </body>
-    </html>
+</html>
